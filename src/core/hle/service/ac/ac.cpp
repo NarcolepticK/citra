@@ -153,8 +153,8 @@ void Module::Interface::IsConnected(Kernel::HLERequestContext& ctx) {
     rb.Push(RESULT_SUCCESS);
     rb.Push(ac->ac_connected);
 
-    NGLOG_WARNING(Service_AC, "(STUBBED) called unk=0x{:08x} descriptor=0x{:08X} param=0x{:08x}", unk,
-                unk_descriptor, unk_param);
+    NGLOG_WARNING(Service_AC, "(STUBBED) called unk=0x{:08X} descriptor=0x{:08X} param=0x{:08X}", unk,
+                  unk_descriptor, unk_param);
 }
 
 void Module::Interface::SetClientVersion(Kernel::HLERequestContext& ctx) {
@@ -163,7 +163,7 @@ void Module::Interface::SetClientVersion(Kernel::HLERequestContext& ctx) {
     u32 version = rp.Pop<u32>();
     rp.Skip(2, false); // ProcessId descriptor
 
-    NGLOG_WARNING(Service_AC, "(STUBBED) called, version: 0x{:08x}", version);
+    NGLOG_WARNING(Service_AC, "(STUBBED) called, version: 0x{:08X}", version);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
