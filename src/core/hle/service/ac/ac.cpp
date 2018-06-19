@@ -153,7 +153,7 @@ void Module::Interface::IsConnected(Kernel::HLERequestContext& ctx) {
     rb.Push(RESULT_SUCCESS);
     rb.Push(ac->ac_connected);
 
-    NGLOG_WARNING(Service_AC, "(STUBBED) called unk={:08x} descriptor=%08X param={:08x}", unk,
+    NGLOG_WARNING(Service_AC, "(STUBBED) called unk=0x{:08x} descriptor=0x{:08X} param=0x{:08x}", unk,
                 unk_descriptor, unk_param);
 }
 
