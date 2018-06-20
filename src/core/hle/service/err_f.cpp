@@ -143,10 +143,10 @@ static void LogGenericInfo(const ErrInfo::ErrInfoCommon& errinfo_common) {
 
     ResultCode result_code{errinfo_common.result_code};
     NGLOG_CRITICAL(Service_ERR, "RSL: 0x{:08X}", result_code.raw);
-    NGLOG_CRITICAL(Service_ERR, "  Level: {}", result_code.level.Value());
-    NGLOG_CRITICAL(Service_ERR, "  Summary: {}", result_code.summary.Value());
-    NGLOG_CRITICAL(Service_ERR, "  Module: {}", result_code.module.Value());
-    NGLOG_CRITICAL(Service_ERR, "  Desc: {}", result_code.description.Value());
+    NGLOG_CRITICAL(Service_ERR, "  Level: {}", static_cast<u32>(result_code.level.Value()));
+    NGLOG_CRITICAL(Service_ERR, "  Summary: {}", static_cast<u32>(result_code.summary.Value()));
+    NGLOG_CRITICAL(Service_ERR, "  Module: {}", static_cast<u32>(result_code.module.Value()));
+    NGLOG_CRITICAL(Service_ERR, "  Desc: {}", static_cast<u32>(result_code.description.Value()));
 }
 
 void ERR_F::ThrowFatalError(Kernel::HLERequestContext& ctx) {
