@@ -672,8 +672,8 @@ void Module::Interface::SwitchContext(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
@@ -699,8 +699,8 @@ void Module::Interface::FlipImage(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
@@ -732,8 +732,8 @@ void Module::Interface::SetDetailSize(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
@@ -762,8 +762,8 @@ void Module::Interface::SetSize(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
@@ -810,8 +810,8 @@ void Module::Interface::SetEffect(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
@@ -837,8 +837,8 @@ void Module::Interface::SetOutputFormat(Kernel::HLERequestContext& ctx) {
         }
         rb.Push(RESULT_SUCCESS);
     } else {
-        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}",
-                    camera_select.m_val, context_select.m_val);
+        NGLOG_ERROR(Service_CAM, "invalid camera_select={}, context_select={}", camera_select.m_val,
+                    context_select.m_val);
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
