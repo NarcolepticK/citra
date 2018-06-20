@@ -677,8 +677,8 @@ void Module::Interface::SwitchContext(Kernel::HLERequestContext& ctx) {
         rb.Push(ERROR_INVALID_ENUM_VALUE);
     }
 
-    NGLOG_DEBUG(Service_CAM, "called, camera_select={}, context_select={}",
-                camera_select.m_val, context_select.m_val);
+    NGLOG_DEBUG(Service_CAM, "called, camera_select={}, context_select={}", camera_select.m_val,
+                context_select.m_val);
 }
 
 void Module::Interface::FlipImage(Kernel::HLERequestContext& ctx) {
