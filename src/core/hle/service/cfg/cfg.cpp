@@ -160,8 +160,8 @@ void Module::Interface::GetCountryCodeID(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(2, 0);
     if (0 == country_code_id) {
-        NGLOG_ERROR(Service_CFG, "requested country code name={}{} is invalid", country_code & 0xff,
-                    country_code >> 8);
+        NGLOG_ERROR(Service_CFG, "requested country code name={}{} is invalid",
+                    (char)country_code & 0xff, (char)country_code >> 8);
         rb.Push(ResultCode(ErrorDescription::NotFound, ErrorModule::Config,
                            ErrorSummary::WrongArgument, ErrorLevel::Permanent));
         rb.Push<u16>(0x00FF);
