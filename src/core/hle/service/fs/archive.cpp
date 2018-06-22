@@ -182,7 +182,7 @@ void File::Close(Kernel::HLERequestContext& ctx) {
     // TODO(Subv): Only close the backend if this client is the only one left.
     if (connected_sessions.size() > 1)
         NGLOG_WARNING(Service_FS, "Closing File backend but {} clients still connected",
-                    connected_sessions.size());
+                      connected_sessions.size());
 
     backend->Close();
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);

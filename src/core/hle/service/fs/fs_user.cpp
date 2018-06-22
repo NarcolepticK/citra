@@ -155,11 +155,10 @@ void FS_USER::RenameFile(Kernel::HLERequestContext& ctx) {
     FileSys::Path src_file_path(src_filename_type, src_filename);
     FileSys::Path dest_file_path(dest_filename_type, dest_filename);
 
-    NGLOG_DEBUG(Service_FS,
-                "src_type={} src_size={} src_data={} dest_type={} dest_size={} dest_data={}",
-                static_cast<u32>(src_filename_type), src_filename_size,
-                src_file_path.DebugStr(), static_cast<u32>(dest_filename_type),
-                dest_filename_size, dest_file_path.DebugStr());
+    NGLOG_DEBUG(
+        Service_FS, "src_type={} src_size={} src_data={} dest_type={} dest_size={} dest_data={}",
+        static_cast<u32>(src_filename_type), src_filename_size, src_file_path.DebugStr(),
+        static_cast<u32>(dest_filename_type), dest_filename_size, dest_file_path.DebugStr());
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RenameFileBetweenArchives(src_archive_handle, src_file_path, dest_archive_handle,
