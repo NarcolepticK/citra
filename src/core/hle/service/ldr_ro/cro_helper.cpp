@@ -976,8 +976,8 @@ ResultCode CROHelper::ApplyModuleExport(CROHelper target) {
         if (Memory::ReadCString(entry.name_offset, target_import_string_size) != module_name)
             continue;
 
-        NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} indexed symbols to \"{}\"", module_name.data(),
-                   entry.import_indexed_symbol_num, target.ModuleName().data());
+        NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} indexed symbols to \"{}\"",
+                   module_name.data(), entry.import_indexed_symbol_num, target.ModuleName().data());
         for (u32 j = 0; j < entry.import_indexed_symbol_num; ++j) {
             ImportIndexedSymbolEntry im;
             entry.GetImportIndexedSymbolEntry(j, im);
@@ -994,7 +994,8 @@ ResultCode CROHelper::ApplyModuleExport(CROHelper target) {
         }
 
         NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} anonymous symbols to \"{}\"",
-                   module_name.data(), entry.import_anonymous_symbol_num, target.ModuleName().data());
+                   module_name.data(), entry.import_anonymous_symbol_num,
+                   target.ModuleName().data());
         for (u32 j = 0; j < entry.import_anonymous_symbol_num; ++j) {
             ImportAnonymousSymbolEntry im;
             entry.GetImportAnonymousSymbolEntry(j, im);
@@ -1025,8 +1026,8 @@ ResultCode CROHelper::ResetModuleExport(CROHelper target) {
         if (Memory::ReadCString(entry.name_offset, target_import_string_size) != module_name)
             continue;
 
-        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports indexed symbols to \"{}\"", module_name.data(),
-                    target.ModuleName().data());
+        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports indexed symbols to \"{}\"",
+                    module_name.data(), target.ModuleName().data());
         for (u32 j = 0; j < entry.import_indexed_symbol_num; ++j) {
             ImportIndexedSymbolEntry im;
             entry.GetImportIndexedSymbolEntry(j, im);
