@@ -550,7 +550,7 @@ ResultCode CROHelper::ApplyStaticAnonymousSymbolToCRS(VAddr crs_address) {
 
     CROHelper crs(crs_address);
     u32 offset_export_num = GetField(StaticAnonymousSymbolNum);
-    NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} static anonymous symbols", ModuleName().data(),
+    NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} static anonymous symbols", ModuleName(),
                offset_export_num);
     for (u32 i = 0; i < offset_export_num; ++i) {
         StaticAnonymousSymbolEntry entry;
@@ -564,7 +564,7 @@ ResultCode CROHelper::ApplyStaticAnonymousSymbolToCRS(VAddr crs_address) {
 
         u32 symbol_address = SegmentTagToAddress(entry.symbol_position);
         NGLOG_TRACE(Service_LDR, "CRO \"{}\" exports 0x{:08X} to the static module",
-                    ModuleName().data(), symbol_address);
+                    ModuleName(), symbol_address);
         ResultCode result = crs.ApplyRelocationBatch(batch_address, symbol_address);
         if (result.IsError()) {
             NGLOG_ERROR(Service_LDR, "Error applying relocation batch {:08X}", result.raw);
@@ -765,8 +765,7 @@ ResultCode CROHelper::ApplyImportNamedSymbol(VAddr crs_address) {
 
                     if (symbol_address != 0) {
                         NGLOG_TRACE(Service_LDR, "CRO \"{}\" imports \"{}\" from \"{}\"",
-                                    ModuleName().data(), symbol_name.data(),
-                                    source.ModuleName().data());
+                                    ModuleName(), symbol_name, source.ModuleName());
 
                         ResultCode result = ApplyRelocationBatch(relocation_addr, symbol_address);
                         if (result.IsError()) {
@@ -861,8 +860,7 @@ ResultCode CROHelper::ApplyModuleImport(VAddr crs_address) {
             ForEachAutoLinkCRO(crs_address, [&](CROHelper source) -> ResultVal<bool> {
                 if (want_cro_name == source.ModuleName()) {
                     NGLOG_INFO(Service_LDR, "CRO \"{}\" imports {} indexed symbols from \"{}\"",
-                               ModuleName().data(), entry.import_indexed_symbol_num,
-                               source.ModuleName().data());
+                               ModuleName(), entry.import_indexed_symbol_num, source.ModuleName());
                     for (u32 j = 0; j < entry.import_indexed_symbol_num; ++j) {
                         ImportIndexedSymbolEntry im;
                         entry.GetImportIndexedSymbolEntry(j, im);
@@ -879,8 +877,8 @@ ResultCode CROHelper::ApplyModuleImport(VAddr crs_address) {
                         }
                     }
                     NGLOG_INFO(Service_LDR, "CRO \"{}\" imports {} anonymous symbols from \"{}\"",
-                               ModuleName().data(), entry.import_anonymous_symbol_num,
-                               source.ModuleName().data());
+                               ModuleName(), entry.import_anonymous_symbol_num,
+                               source.ModuleName());
                     for (u32 j = 0; j < entry.import_anonymous_symbol_num; ++j) {
                         ImportAnonymousSymbolEntry im;
                         entry.GetImportAnonymousSymbolEntry(j, im);
@@ -906,8 +904,8 @@ ResultCode CROHelper::ApplyModuleImport(VAddr crs_address) {
 }
 
 ResultCode CROHelper::ApplyExportNamedSymbol(CROHelper target) {
-    NGLOG_DEBUG(Service_LDR, "CRO \"{}\" exports named symbols to \"{}\"", ModuleName().data(),
-                target.ModuleName().data());
+    NGLOG_DEBUG(Service_LDR, "CRO \"{}\" exports named symbols to \"{}\"", ModuleName(),
+                target.ModuleName());
     u32 target_import_strings_size = target.GetField(ImportStringsSize);
     u32 target_symbol_import_num = target.GetField(ImportNamedSymbolNum);
     for (u32 i = 0; i < target_symbol_import_num; ++i) {
@@ -922,7 +920,7 @@ ResultCode CROHelper::ApplyExportNamedSymbol(CROHelper target) {
                 Memory::ReadCString(entry.name_offset, target_import_strings_size);
             u32 symbol_address = FindExportNamedSymbol(symbol_name);
             if (symbol_address != 0) {
-                NGLOG_TRACE(Service_LDR, "    exports symbol \"{}\"", symbol_name.data());
+                NGLOG_TRACE(Service_LDR, "    exports symbol \"{}\"", symbol_name);
                 ResultCode result = target.ApplyRelocationBatch(relocation_addr, symbol_address);
                 if (result.IsError()) {
                     NGLOG_ERROR(Service_LDR, "Error applying relocation batch {:08X}", result.raw);
@@ -935,8 +933,8 @@ ResultCode CROHelper::ApplyExportNamedSymbol(CROHelper target) {
 }
 
 ResultCode CROHelper::ResetExportNamedSymbol(CROHelper target) {
-    NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports named symbols to \"{}\"", ModuleName().data(),
-                target.ModuleName().data());
+    NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports named symbols to \"{}\"", ModuleName(),
+                target.ModuleName());
     u32 unresolved_symbol = target.GetOnUnresolvedAddress();
     u32 target_import_strings_size = target.GetField(ImportStringsSize);
     u32 target_symbol_import_num = target.GetField(ImportNamedSymbolNum);
@@ -952,7 +950,7 @@ ResultCode CROHelper::ResetExportNamedSymbol(CROHelper target) {
                 Memory::ReadCString(entry.name_offset, target_import_strings_size);
             u32 symbol_address = FindExportNamedSymbol(symbol_name);
             if (symbol_address != 0) {
-                NGLOG_TRACE(Service_LDR, "    unexports symbol \"{}\"", symbol_name.data());
+                NGLOG_TRACE(Service_LDR, "    unexports symbol \"{}\"", symbol_name);
                 ResultCode result =
                     target.ApplyRelocationBatch(relocation_addr, unresolved_symbol, true);
                 if (result.IsError()) {
@@ -977,7 +975,7 @@ ResultCode CROHelper::ApplyModuleExport(CROHelper target) {
             continue;
 
         NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} indexed symbols to \"{}\"",
-                   module_name.data(), entry.import_indexed_symbol_num, target.ModuleName().data());
+                   module_name, entry.import_indexed_symbol_num, target.ModuleName());
         for (u32 j = 0; j < entry.import_indexed_symbol_num; ++j) {
             ImportIndexedSymbolEntry im;
             entry.GetImportIndexedSymbolEntry(j, im);
@@ -994,8 +992,8 @@ ResultCode CROHelper::ApplyModuleExport(CROHelper target) {
         }
 
         NGLOG_INFO(Service_LDR, "CRO \"{}\" exports {} anonymous symbols to \"{}\"",
-                   module_name.data(), entry.import_anonymous_symbol_num,
-                   target.ModuleName().data());
+                   module_name, entry.import_anonymous_symbol_num,
+                   target.ModuleName());
         for (u32 j = 0; j < entry.import_anonymous_symbol_num; ++j) {
             ImportAnonymousSymbolEntry im;
             entry.GetImportAnonymousSymbolEntry(j, im);
@@ -1026,8 +1024,8 @@ ResultCode CROHelper::ResetModuleExport(CROHelper target) {
         if (Memory::ReadCString(entry.name_offset, target_import_string_size) != module_name)
             continue;
 
-        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports indexed symbols to \"{}\"",
-                    module_name.data(), target.ModuleName().data());
+        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports indexed symbols to \"{}\"", module_name,
+                    target.ModuleName());
         for (u32 j = 0; j < entry.import_indexed_symbol_num; ++j) {
             ImportIndexedSymbolEntry im;
             entry.GetImportIndexedSymbolEntry(j, im);
@@ -1039,8 +1037,8 @@ ResultCode CROHelper::ResetModuleExport(CROHelper target) {
             }
         }
 
-        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports anonymous symbols to \"{}\"",
-                    module_name.data(), target.ModuleName().data());
+        NGLOG_DEBUG(Service_LDR, "CRO \"{}\" unexports anonymous symbols to \"{}\"", module_name,
+                    target.ModuleName());
         for (u32 j = 0; j < entry.import_anonymous_symbol_num; ++j) {
             ImportAnonymousSymbolEntry im;
             entry.GetImportAnonymousSymbolEntry(j, im);
@@ -1073,7 +1071,7 @@ ResultCode CROHelper::ApplyExitRelocations(VAddr crs_address) {
 
                     if (symbol_address != 0) {
                         NGLOG_DEBUG(Service_LDR, "CRO \"{}\" import exit function from \"{}\"",
-                                    ModuleName().data(), source.ModuleName().data());
+                                    ModuleName(), source.ModuleName());
 
                         ResultCode result = ApplyRelocationBatch(relocation_addr, symbol_address);
                         if (result.IsError()) {

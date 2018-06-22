@@ -372,8 +372,8 @@ void RO::LoadCRO(Kernel::HLERequestContext& ctx, bool link_on_load_bug_fix) {
 
     Core::CPU().InvalidateCacheRange(cro_address, cro_size);
 
-    NGLOG_INFO(Service_LDR, "CRO \"{}\" loaded at 0x{:08X}, fixed_end=0x{:08X}",
-               cro.ModuleName().data(), cro_address, cro_address + fix_size);
+    NGLOG_INFO(Service_LDR, "CRO \"{}\" loaded at 0x{:08X}, fixed_end=0x{:08X}", cro.ModuleName(),
+               cro_address, cro_address + fix_size);
 
     rb.Push(RESULT_SUCCESS, fix_size);
 }
@@ -411,7 +411,7 @@ void RO::UnloadCRO(Kernel::HLERequestContext& ctx) {
         return;
     }
 
-    NGLOG_INFO(Service_LDR, "Unloading CRO \"{}\"", cro.ModuleName().data());
+    NGLOG_INFO(Service_LDR, "Unloading CRO \"{}\"", cro.ModuleName());
 
     u32 fixed_size = cro.GetFixedSize();
 
@@ -483,7 +483,7 @@ void RO::LinkCRO(Kernel::HLERequestContext& ctx) {
         return;
     }
 
-    NGLOG_INFO(Service_LDR, "Linking CRO \"{}\"", cro.ModuleName().data());
+    NGLOG_INFO(Service_LDR, "Linking CRO \"{}\"", cro.ModuleName());
 
     ResultCode result = cro.Link(slot->loaded_crs, false);
     if (result.IsError()) {
@@ -525,7 +525,7 @@ void RO::UnlinkCRO(Kernel::HLERequestContext& ctx) {
         return;
     }
 
-    NGLOG_INFO(Service_LDR, "Unlinking CRO \"{}\"", cro.ModuleName().data());
+    NGLOG_INFO(Service_LDR, "Unlinking CRO \"{}\"", cro.ModuleName());
 
     ResultCode result = cro.Unlink(slot->loaded_crs);
     if (result.IsError()) {
