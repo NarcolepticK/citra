@@ -182,11 +182,11 @@ void ProcessTriangle(const OutputVertex& v0, const OutputVertex& v1, const Outpu
             vtx0.pos.z.ToFloat32(), vtx0.pos.w.ToFloat32(), vtx1.pos.x.ToFloat32(),
             vtx1.pos.y.ToFloat32(), vtx1.pos.z.ToFloat32(), vtx1.pos.w.ToFloat32(),
             vtx2.pos.x.ToFloat32(), vtx2.pos.y.ToFloat32(), vtx2.pos.z.ToFloat32(),
-            vtx2.pos.w.ToFloat32(), vtx0.screenpos.x.ToFloat32(),
-            vtx0.screenpos.y.ToFloat32(), vtx0.screenpos.z.ToFloat32(),
-            vtx1.screenpos.x.ToFloat32(), vtx1.screenpos.y.ToFloat32(),
-            vtx1.screenpos.z.ToFloat32(), vtx2.screenpos.x.ToFloat32(),
-            vtx2.screenpos.y.ToFloat32(), vtx2.screenpos.z.ToFloat32());
+            vtx2.pos.w.ToFloat32(), vtx0.screenpos.x.ToFloat32(), vtx0.screenpos.y.ToFloat32(),
+            vtx0.screenpos.z.ToFloat32(), vtx1.screenpos.x.ToFloat32(),
+            vtx1.screenpos.y.ToFloat32(), vtx1.screenpos.z.ToFloat32(),
+            vtx2.screenpos.x.ToFloat32(), vtx2.screenpos.y.ToFloat32(),
+            vtx2.screenpos.z.ToFloat32());
 
         Rasterizer::ProcessTriangle(vtx0, vtx1, vtx2);
     }
