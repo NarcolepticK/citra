@@ -494,8 +494,8 @@ static void APIENTRY DebugHandler(GLenum source, GLenum type, GLuint id, GLenum 
         level = Log::Level::Debug;
         break;
     }
-    LOG_GENERIC(Log::Class::Render_OpenGL, level, "%s %s %d: %s", GetSource(source), GetType(type),
-                id, message);
+    NGLOG_GENERIC(Log::Class::Render_OpenGL, level, "{} {} {}: {}", GetSource(source),
+                  GetType(type), id, message);
 }
 
 /// Initialize the renderer
