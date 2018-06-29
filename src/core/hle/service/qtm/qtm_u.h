@@ -13,7 +13,6 @@ class QTM_U final : public ServiceFramework<QTM_U> {
 public:
     QTM_U();
     ~QTM_U() = default;
-
 };
 
 } // namespace QTM

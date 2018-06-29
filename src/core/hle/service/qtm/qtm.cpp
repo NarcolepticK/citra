@@ -8,7 +8,6 @@
 #include "core/hle/service/qtm/qtm_sp.h"
 #include "core/hle/service/qtm/qtm_u.h"
 
-
 namespace Service {
 namespace QTM {
 

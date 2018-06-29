@@ -14,7 +14,7 @@ QTM_SP::QTM_SP() : ServiceFramework("qtm:sp", 2) {
         // qtm common commands
         {0x00010080, nullptr, "GetHeadtrackingInfoRaw"},
         {0x00020080, nullptr, "GetHeadtrackingInfo"},
-         // clang-format on
+        // clang-format on
     };
 
     RegisterHandlers(functions);

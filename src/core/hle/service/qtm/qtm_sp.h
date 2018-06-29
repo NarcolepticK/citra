@@ -13,7 +13,6 @@ class QTM_SP final : public ServiceFramework<QTM_SP> {
 public:
     QTM_SP();
     ~QTM_SP() = default;
-
 };
 
 } // namespace QTM
