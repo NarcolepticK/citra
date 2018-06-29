@@ -9,13 +9,11 @@
 namespace Service {
 namespace QTM {
 
-class QTM_U final : public Interface {
+class QTM_U final : public ServiceFramework<QTM_U> {
 public:
     QTM_U();
+    ~QTM_U() = default;
 
-    std::string GetPortName() const override {
-        return "qtm:u";
-    }
 };
 
 } // namespace QTM

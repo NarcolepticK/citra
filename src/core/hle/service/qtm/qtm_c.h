@@ -9,8 +9,12 @@
 namespace Service {
 namespace QTM {
 
-/// Initializes all QTM services.
-void InstallInterfaces(SM::ServiceManager& service_manager);
+class QTM_C final : public ServiceFramework<QTM_C> {
+public:
+    QTM_C();
+    ~QTM_C() = default;
+
+};
 
 } // namespace QTM
 } // namespace Service
