@@ -5,8 +5,8 @@
 #pragma once
 
 #include "audio_core/dsp_interface.h"
-#include "core/hle/result.h"
 #include "core/hle/kernel/event.h"
+#include "core/hle/result.h"
 #include "core/hle/service/service.h"
 
 namespace Service {

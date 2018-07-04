@@ -21,11 +21,7 @@ namespace Service {
 namespace DSP {
 
 /// There are three types of interrupts
-enum class InterruptType : u32 {
-    Zero = 0,
-    One = 1,
-    Pipe = 2
-};
+enum class InterruptType : u32 { Zero = 0, One = 1, Pipe = 2 };
 
 constexpr size_t NUM_INTERRUPT_TYPE = 3;
 
@@ -71,7 +67,7 @@ public:
 
 private:
     Kernel::SharedPtr<Kernel::Event> zero = nullptr; /// Currently unknown purpose
-    Kernel::SharedPtr<Kernel::Event> one = nullptr; /// Currently unknown purpose
+    Kernel::SharedPtr<Kernel::Event> one = nullptr;  /// Currently unknown purpose
 
     /// Each DSP pipe has an associated interrupt
     std::array<Kernel::SharedPtr<Kernel::Event>, AudioCore::num_dsp_pipe> pipe = {{}};
@@ -183,7 +179,8 @@ void DSP_DSP::WriteProcessPipe(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_DSP, "channel={}, size=0x{:X}, buffer_size={:X}", channel, size, buffer.size());
+    LOG_DEBUG(Service_DSP, "channel={}, size=0x{:X}, buffer_size={:X}", channel, size,
+              buffer.size());
 }
 
 void DSP_DSP::ReadPipe(Kernel::HLERequestContext& ctx) {
@@ -316,20 +313,21 @@ void DSP_DSP::RegisterInterruptEvents(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
 
     if (interrupt_events.HasTooManyEventsRegistered()) {
-        LOG_INFO(Service_DSP, "Ran out of space to register interrupts (Attempted to register "
-                              "interrupt={}, channel={}, event={})",
-                              interrupt, channel, event->GetName());
+        LOG_INFO(Service_DSP,
+                 "Ran out of space to register interrupts (Attempted to register "
+                 "interrupt={}, channel={}, event={})",
+                 interrupt, channel, event->GetName());
         rb.Push(ResultCode(ErrorDescription::InvalidResultValue, ErrorModule::DSP,
                            ErrorSummary::OutOfResource, ErrorLevel::Status));
     } else {
         if (event) { /// Register interrupt event
             interrupt_events.Get(type, pipe) = event;
-            LOG_INFO(Service_DSP, "Registered interrupt={}, channel={}, event={}",
-                     interrupt, channel, event->GetName());
+            LOG_INFO(Service_DSP, "Registered interrupt={}, channel={}, event={}", interrupt,
+                     channel, event->GetName());
         } else { /// Otherwise unregister event
             interrupt_events.Get(type, pipe) = nullptr;
-            LOG_INFO(Service_DSP, "Unregistered interrupt={}, channel={}, event={}",
-                     interrupt, channel, event->GetName());
+            LOG_INFO(Service_DSP, "Unregistered interrupt={}, channel={}, event={}", interrupt,
+                     channel, event->GetName());
         }
         rb.Push(RESULT_SUCCESS);
     }
