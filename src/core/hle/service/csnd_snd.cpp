@@ -106,7 +106,7 @@ void CSND_SND::FlushDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
@@ -119,7 +119,7 @@ void CSND_SND::StoreDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
@@ -132,7 +132,7 @@ void CSND_SND::InvalidateDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_CSND, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 

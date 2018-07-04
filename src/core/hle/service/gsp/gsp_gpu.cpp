@@ -317,7 +317,7 @@ void GSP_GPU::FlushDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
@@ -332,7 +332,7 @@ void GSP_GPU::InvalidateDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
@@ -724,7 +724,7 @@ void GSP_GPU::StoreDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
