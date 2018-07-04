@@ -101,11 +101,11 @@ void DSP_DSP::RecvData(Kernel::HLERequestContext& ctx) {
 
     switch (Core::DSP().GetDspState()) {
     case AudioCore::DspState::On:
-        rb.Push(false);
+        rb.Push<u32>(0);
         break;
     case AudioCore::DspState::Off:
     case AudioCore::DspState::Sleeping:
-        rb.Push(true);
+        rb.Push<u32>(1);
         break;
     default:
         UNREACHABLE();
