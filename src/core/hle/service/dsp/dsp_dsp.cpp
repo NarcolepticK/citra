@@ -160,30 +160,25 @@ void DSP_DSP::WriteProcessPipe(Kernel::HLERequestContext& ctx) {
 
     DspPipe pipe = static_cast<DspPipe>(channel);
 
-    std::vector<u8> message(size);
-    for (u32 i = 0; i < size; i++) {
-        message[i] = buffer[i];
-    }
-
     // This behaviour was confirmed by RE.
     // The likely reason for this is that games tend to pass in garbage at these bytes
     // because they read random bytes off the stack.
     switch (pipe) {
     case DspPipe::Audio:
-        ASSERT(message.size() >= 4);
-        message[2] = 0;
-        message[3] = 0;
+        ASSERT(buffer.size() >= 4);
+        buffer[2] = 0;
+        buffer[3] = 0;
         break;
     case DspPipe::Binary:
-        ASSERT(message.size() >= 8);
-        message[4] = 1;
-        message[5] = 0;
-        message[6] = 0;
-        message[7] = 0;
+        ASSERT(buffer.size() >= 8);
+        buffer[4] = 1;
+        buffer[5] = 0;
+        buffer[6] = 0;
+        buffer[7] = 0;
         break;
     }
 
-    Core::DSP().PipeWrite(pipe, message);
+    Core::DSP().PipeWrite(pipe, buffer);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
