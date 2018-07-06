@@ -17,6 +17,16 @@ public:
     DSP_DSP();
     ~DSP_DSP();
 
+    /// There are three types of interrupts
+    static constexpr size_t NUM_INTERRUPT_TYPE = 3;
+    enum class InterruptType : u32 { Zero = 0, One = 1, Pipe = 2 };
+
+    /// Actual service implementation only has 6 'slots' for interrupts.
+    static constexpr size_t max_number_of_interrupt_events = 6;
+
+    /// Signal interrupt on pipe
+    void SignalInterrupt(InterruptType type, AudioCore::DspPipe pipe);
+
 private:
     /**
      * DSP_DSP::RecvData service function
@@ -226,7 +236,19 @@ private:
      */
     void ForceHeadphoneOut(Kernel::HLERequestContext& ctx);
 
+    /// Returns the Interrupt Event for a given pipe
+    Kernel::SharedPtr<Kernel::Event>& GetInterruptEvent(InterruptType type,
+                                                        AudioCore::DspPipe dsp_pipe);
+    /// Checks if we are trying to register more than 6 events
+    bool HasTooManyEventsRegistered() const;
+
     Kernel::SharedPtr<Kernel::Event> semaphore_event;
+
+    Kernel::SharedPtr<Kernel::Event> interrupt_zero = nullptr; /// Currently unknown purpose
+    Kernel::SharedPtr<Kernel::Event> interrupt_one = nullptr;  /// Currently unknown purpose
+
+    /// Each DSP pipe has an associated interrupt
+    std::array<Kernel::SharedPtr<Kernel::Event>, AudioCore::num_dsp_pipe> pipes = {{}};
 };
 
 /**

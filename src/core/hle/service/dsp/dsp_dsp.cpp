@@ -12,6 +12,7 @@
 #include "core/hle/service/dsp/dsp_dsp.h"
 
 using DspPipe = AudioCore::DspPipe;
+using InterruptType = Service::DSP::DSP_DSP::InterruptType;
 
 namespace AudioCore {
 enum class DspPipe;
@@ -20,68 +21,7 @@ enum class DspPipe;
 namespace Service {
 namespace DSP {
 
-/// There are three types of interrupts
-enum class InterruptType : u32 { Zero = 0, One = 1, Pipe = 2 };
-
-constexpr size_t NUM_INTERRUPT_TYPE = 3;
-
-class InterruptEvents final {
-public:
-    void Signal(InterruptType type, DspPipe pipe) {
-        Kernel::SharedPtr<Kernel::Event>& event = Get(type, pipe);
-        if (event) {
-            event->Signal();
-        }
-    }
-
-    Kernel::SharedPtr<Kernel::Event>& Get(InterruptType type, DspPipe dsp_pipe) {
-        switch (type) {
-        case InterruptType::Zero:
-            return zero;
-        case InterruptType::One:
-            return one;
-        case InterruptType::Pipe: {
-            const size_t pipe_index = static_cast<size_t>(dsp_pipe);
-            ASSERT(pipe_index < AudioCore::num_dsp_pipe);
-            return pipe[pipe_index];
-        }
-        }
-
-        UNREACHABLE_MSG("Invalid interrupt type = {}", static_cast<size_t>(type));
-    }
-
-    bool HasTooManyEventsRegistered() const {
-        // Actual service implementation only has 6 'slots' for interrupts.
-        constexpr size_t max_number_of_interrupt_events = 6;
-
-        size_t number =
-            std::count_if(pipe.begin(), pipe.end(), [](const auto& evt) { return evt != nullptr; });
-
-        if (zero != nullptr)
-            number++;
-        if (one != nullptr)
-            number++;
-
-        return number >= max_number_of_interrupt_events;
-    }
-
-private:
-    Kernel::SharedPtr<Kernel::Event> zero = nullptr; /// Currently unknown purpose
-    Kernel::SharedPtr<Kernel::Event> one = nullptr;  /// Currently unknown purpose
-
-    /// Each DSP pipe has an associated interrupt
-    std::array<Kernel::SharedPtr<Kernel::Event>, AudioCore::num_dsp_pipe> pipe = {{}};
-};
-
-static InterruptEvents interrupt_events;
-
-// DSP Interrupts:
-// The audio-pipe interrupt occurs every frame tick. Userland programs normally have a thread
-// that's waiting for an interrupt event. Immediately after this interrupt event, userland
-// normally updates the state in the next region and increments the relevant frame counter by two.
-void SignalPipeInterrupt(DspPipe pipe) {
-    interrupt_events.Signal(InterruptType::Pipe, pipe);
-}
+static std::weak_ptr<DSP_DSP> dsp_dsp;
 
 void DSP_DSP::RecvData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x01, 1, 0);
@@ -312,7 +252,7 @@ void DSP_DSP::RegisterInterruptEvents(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
 
-    if (interrupt_events.HasTooManyEventsRegistered()) {
+    if (HasTooManyEventsRegistered()) {
         LOG_INFO(Service_DSP,
                  "Ran out of space to register interrupts (Attempted to register "
                  "interrupt={}, channel={}, event={})",
@@ -321,11 +261,11 @@ void DSP_DSP::RegisterInterruptEvents(Kernel::HLERequestContext& ctx) {
                            ErrorSummary::OutOfResource, ErrorLevel::Status));
     } else {
         if (event) { /// Register interrupt event
-            interrupt_events.Get(type, pipe) = event;
+            GetInterruptEvent(type, pipe) = event;
             LOG_INFO(Service_DSP, "Registered interrupt={}, channel={}, event={}", interrupt,
                      channel, event->GetName());
         } else { /// Otherwise unregister event
-            interrupt_events.Get(type, pipe) = nullptr;
+            GetInterruptEvent(type, pipe) = nullptr;
             LOG_INFO(Service_DSP, "Unregistered interrupt={}, channel={}, event={}", interrupt,
                      channel, event->GetName());
         }
@@ -373,6 +313,40 @@ void DSP_DSP::ForceHeadphoneOut(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_DSP, "(STUBBED) called, force={}", force);
 }
 
+void DSP_DSP::SignalInterrupt(InterruptType type, DspPipe pipe) {
+    Kernel::SharedPtr<Kernel::Event>& event = GetInterruptEvent(type, pipe);
+    if (event)
+        event->Signal();
+}
+
+Kernel::SharedPtr<Kernel::Event>& DSP_DSP::GetInterruptEvent(InterruptType type, DspPipe dsp_pipe) {
+    switch (type) {
+    case InterruptType::Zero:
+        return interrupt_zero;
+    case InterruptType::One:
+        return interrupt_one;
+    case InterruptType::Pipe: {
+        const size_t pipe_index = static_cast<size_t>(dsp_pipe);
+        ASSERT(pipe_index < AudioCore::num_dsp_pipe);
+        return pipes[pipe_index];
+    }
+    }
+
+    UNREACHABLE_MSG("Invalid interrupt type = {}", static_cast<size_t>(type));
+}
+
+bool DSP_DSP::HasTooManyEventsRegistered() const {
+    size_t number =
+        std::count_if(pipes.begin(), pipes.end(), [](const auto& evt) { return evt != nullptr; });
+
+    if (interrupt_zero != nullptr)
+        number++;
+    if (interrupt_one != nullptr)
+        number++;
+
+    return number >= max_number_of_interrupt_events;
+}
+
 DSP_DSP::DSP_DSP() : ServiceFramework("dsp::DSP", DefaultMaxSessions) {
     static const FunctionInfo functions[] = {
         // clang-format off
@@ -415,16 +389,27 @@ DSP_DSP::DSP_DSP() : ServiceFramework("dsp::DSP", DefaultMaxSessions) {
     RegisterHandlers(functions);
 
     semaphore_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "DSP_DSP::semaphore_event");
-    interrupt_events = {};
 }
 
 DSP_DSP::~DSP_DSP() {
     semaphore_event = nullptr;
-    interrupt_events = {};
+    pipes = {};
+}
+
+// DSP Interrupts:
+// The audio-pipe interrupt occurs every frame tick. Userland programs normally have a thread
+// that's waiting for an interrupt event. Immediately after this interrupt event, userland
+// normally updates the state in the next region and increments the relevant frame counter by two.
+void SignalPipeInterrupt(DspPipe pipe) {
+    auto dsp = dsp_dsp.lock();
+    ASSERT(dsp != nullptr);
+    return dsp->SignalInterrupt(InterruptType::Pipe, pipe);
 }
 
 void InstallInterfaces(SM::ServiceManager& service_manager) {
-    std::make_shared<DSP_DSP>()->InstallAsService(service_manager);
+    auto dsp = std::make_shared<DSP_DSP>();
+    dsp->InstallAsService(service_manager);
+    dsp_dsp = dsp;
 }
 
 } // namespace DSP
