@@ -158,8 +158,8 @@ void DSP_DSP::GetPipeReadableSize(Kernel::HLERequestContext& ctx) {
     rb.Push(RESULT_SUCCESS);
     rb.Push<u16>(pipe_readable_size);
 
-    LOG_DEBUG(Service_DSP, "channel={}, peer={}, return pipe_readable_size=0x{:04X}",
-              channel, peer, pipe_readable_size);
+    LOG_DEBUG(Service_DSP, "channel={}, peer={}, return pipe_readable_size=0x{:04X}", channel, peer,
+              pipe_readable_size);
 }
 
 void DSP_DSP::ReadPipeIfPossible(Kernel::HLERequestContext& ctx) {
