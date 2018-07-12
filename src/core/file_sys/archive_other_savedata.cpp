@@ -7,7 +7,7 @@
 #include "core/file_sys/archive_other_savedata.h"
 #include "core/file_sys/errors.h"
 #include "core/hle/kernel/process.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FileSys namespace

@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 #include "core/hle/kernel/event.h"
 #include "core/hle/result.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 
 namespace Service {
 namespace APT {

@@ -28,7 +28,7 @@
 #include "common/common_paths.h"
 #include "common/logging/log.h"
 #include "common/string_util.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/loader/loader.h"
 
 GameList::SearchField::KeyReleaseEater::KeyReleaseEater(GameList* gamelist) {

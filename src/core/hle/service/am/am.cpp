@@ -25,9 +25,12 @@
 #include "core/hle/service/am/am_net.h"
 #include "core/hle/service/am/am_sys.h"
 #include "core/hle/service/am/am_u.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/loader/loader.h"
 #include "core/loader/smdh.h"
+
+using Service::FS::SYSTEM_ID;
+using Service::FS::SDCARD_ID;
 
 namespace Service {
 namespace AM {

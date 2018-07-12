@@ -27,8 +27,8 @@
 #include "core/hle/service/dsp/dsp_dsp.h"
 #include "core/hle/service/err_f.h"
 #include "core/hle/service/frd/frd.h"
-#include "core/hle/service/fs/archive.h"
-#include "core/hle/service/fs/fs_user.h"
+#include "core/hle/service/fs/fs.h"
+#include "core/hle/service/fs/fs_reg.h"
 #include "core/hle/service/gsp/gsp.h"
 #include "core/hle/service/gsp/gsp_lcd.h"
 #include "core/hle/service/hid/hid.h"
@@ -224,6 +224,7 @@ void Init(std::shared_ptr<SM::ServiceManager>& sm) {
     SM::ServiceManager::InstallInterfaces(sm);
 
     ERR::InstallInterfaces();
+    FS::InstallInterfaces(*sm);
 
     PXI::InstallInterfaces(*sm);
     NS::InstallInterfaces(*sm);
@@ -232,8 +233,6 @@ void Init(std::shared_ptr<SM::ServiceManager>& sm) {
     MIC::InstallInterfaces(*sm);
     NWM::InstallInterfaces(*sm);
 
-    FS::InstallInterfaces(*sm);
-    FS::ArchiveInit();
     ACT::InstallInterfaces(*sm);
     AM::InstallInterfaces(*sm);
     APT::InstallInterfaces(*sm);
@@ -268,7 +267,7 @@ void Init(std::shared_ptr<SM::ServiceManager>& sm) {
 /// Shutdown ServiceManager
 void Shutdown() {
     BOSS::Shutdown();
-    FS::ArchiveShutdown();
+    FS::FS_REG::UnregisterArchiveTypes();
 
     g_kernel_named_ports.clear();
     LOG_DEBUG(Service, "shutdown OK");

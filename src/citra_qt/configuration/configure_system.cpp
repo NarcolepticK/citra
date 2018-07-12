@@ -7,7 +7,7 @@
 #include "citra_qt/ui_settings.h"
 #include "core/core.h"
 #include "core/hle/service/cfg/cfg.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs_reg.h"
 #include "ui_configure_system.h"
 
 static const std::array<int, 12> days_in_month = {{
@@ -48,9 +48,9 @@ void ConfigureSystem::setConfiguration() {
     } else {
         // This tab is enabled only when game is not running (i.e. all service are not initialized).
         // Temporarily register archive types and load the config savegame file to memory.
-        Service::FS::RegisterArchiveTypes();
+        Service::FS::FS_REG::RegisterArchiveTypes();
         cfg = std::make_shared<Service::CFG::Module>();
-        Service::FS::UnregisterArchiveTypes();
+        Service::FS::FS_REG::UnregisterArchiveTypes();
 
         ReadSystemSettings();
         ui->label_disable_info->hide();

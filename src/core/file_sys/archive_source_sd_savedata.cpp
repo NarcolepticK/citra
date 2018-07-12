@@ -8,10 +8,13 @@
 #include "core/file_sys/archive_source_sd_savedata.h"
 #include "core/file_sys/errors.h"
 #include "core/file_sys/savedata_archive.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FileSys namespace
+
+using Service::FS::SYSTEM_ID;
+using Service::FS::SDCARD_ID;
 
 namespace FileSys {
 

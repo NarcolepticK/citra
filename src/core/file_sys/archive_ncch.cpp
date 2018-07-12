@@ -17,7 +17,7 @@
 #include "core/file_sys/ivfc_archive.h"
 #include "core/file_sys/ncch_container.h"
 #include "core/hle/service/am/am.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/loader/loader.h"
 #include "shared_font.app.romfs.h"
 

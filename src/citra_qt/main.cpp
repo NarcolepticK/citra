@@ -53,7 +53,7 @@
 #include "core/file_sys/archive_source_sd_savedata.h"
 #include "core/frontend/applets/default_applets.h"
 #include "core/gdbstub/gdbstub.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/loader/loader.h"
 #include "core/settings.h"
 

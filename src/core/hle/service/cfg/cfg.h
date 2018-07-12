@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 #include "common/common_types.h"
-#include "core/hle/service/fs/archive.h"
+#include "core/hle/service/fs/fs.h"
 
 namespace Service {
 namespace CFG {
