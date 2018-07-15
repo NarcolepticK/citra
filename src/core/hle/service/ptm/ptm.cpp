@@ -141,16 +141,16 @@ Module::Module() {
     // Open the SharedExtSaveData archive 0xF000000B and create the gamecoin.dat file if it doesn't
     // exist
     FileSys::Path archive_path(ptm_shared_extdata_id);
-    auto archive_result =
-        Service::FS::FS_REG::OpenArchive(Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+    auto archive_result = Service::FS::FS_REG::OpenArchive(
+        Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
     // If the archive didn't exist, create the files inside
     if (archive_result.Code() == FileSys::ERR_NOT_FORMATTED) {
         // Format the archive to create the directories
         Service::FS::FS_REG::FormatArchive(Service::FS::ArchiveIdCode::SharedExtSaveData,
-                                   FileSys::ArchiveFormatInfo(), archive_path);
+                                           FileSys::ArchiveFormatInfo(), archive_path);
         // Open it again to get a valid archive now that the folder exists
-        archive_result =
-            Service::FS::FS_REG::OpenArchive(Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+        archive_result = Service::FS::FS_REG::OpenArchive(
+            Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
         ASSERT_MSG(archive_result.Succeeded(), "Could not open the PTM SharedExtSaveData archive!");
 
         FileSys::Path gamecoin_path("/gamecoin.dat");

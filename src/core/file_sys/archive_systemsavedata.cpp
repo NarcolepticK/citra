@@ -17,8 +17,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FileSys namespace
 
-using Service::FS::SYSTEM_ID;
 using Service::FS::SDCARD_ID;
+using Service::FS::SYSTEM_ID;
 
 namespace FileSys {
 

@@ -400,7 +400,8 @@ ResultCode Module::UpdateConfigNANDSavegame() {
 
     FileSys::Path path("/config");
 
-    auto config_result = Service::FS::FS_REG::OpenFileFromArchive(cfg_system_save_data_archive, path, mode);
+    auto config_result =
+        Service::FS::FS_REG::OpenFileFromArchive(cfg_system_save_data_archive, path, mode);
     ASSERT_MSG(config_result.Succeeded(), "could not open file");
 
     auto config = std::move(config_result).Unwrap();
@@ -541,8 +542,8 @@ ResultCode Module::LoadConfigNANDSaveFile() {
                                            FileSys::ArchiveFormatInfo(), archive_path);
 
         // Open it again to get a valid archive now that the folder exists
-        archive_result =
-            Service::FS::FS_REG::OpenArchive(Service::FS::ArchiveIdCode::SystemSaveData, archive_path);
+        archive_result = Service::FS::FS_REG::OpenArchive(
+            Service::FS::ArchiveIdCode::SystemSaveData, archive_path);
     }
 
     ASSERT_MSG(archive_result.Succeeded(), "Could not open the CFG SystemSaveData archive!");
@@ -553,7 +554,8 @@ ResultCode Module::LoadConfigNANDSaveFile() {
     FileSys::Mode open_mode = {};
     open_mode.read_flag.Assign(1);
 
-    auto config_result = Service::FS::FS_REG::OpenFileFromArchive(*archive_result, config_path, open_mode);
+    auto config_result =
+        Service::FS::FS_REG::OpenFileFromArchive(*archive_result, config_path, open_mode);
 
     // Read the file if it already exists
     if (config_result.Succeeded()) {

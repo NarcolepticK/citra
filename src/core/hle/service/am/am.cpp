@@ -29,8 +29,8 @@
 #include "core/loader/loader.h"
 #include "core/loader/smdh.h"
 
-using Service::FS::SYSTEM_ID;
 using Service::FS::SDCARD_ID;
+using Service::FS::SYSTEM_ID;
 
 namespace Service {
 namespace AM {
