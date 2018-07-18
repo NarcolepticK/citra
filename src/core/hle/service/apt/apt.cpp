@@ -18,7 +18,6 @@
 #include "core/hle/service/apt/apt_u.h"
 #include "core/hle/service/apt/bcfnt/bcfnt.h"
 #include "core/hle/service/cfg/cfg.h"
-#include "core/hle/service/fs/fs_reg.h"
 #include "core/hle/service/ptm/ptm.h"
 #include "core/hle/service/service.h"
 #include "core/hw/aes/ccm.h"
@@ -124,8 +123,8 @@ bool Module::LoadSharedFont() {
     std::memcpy(&shared_font_archive_id[0], &shared_font_archive_id_low, sizeof(u64));
     std::memcpy(&shared_font_archive_id[8], &shared_font_archive_id_high, sizeof(u64));
     FileSys::Path archive_path(shared_font_archive_id);
-    auto archive_result =
-        Service::FS::FS_REG::OpenArchive(Service::FS::ArchiveIdCode::NCCH, archive_path);
+    auto archive_result = fs->GetArchiveManager()->OpenArchive(Service::FS::ArchiveIdCode::NCCH,
+                                                               archive_path);
     if (archive_result.Failed())
         return false;
 
@@ -133,8 +132,8 @@ bool Module::LoadSharedFont() {
     FileSys::Path file_path(romfs_path);
     FileSys::Mode open_mode = {};
     open_mode.read_flag.Assign(1);
-    auto file_result =
-        Service::FS::FS_REG::OpenFileFromArchive(*archive_result, file_path, open_mode);
+    auto file_result = fs->GetArchiveManager()->OpenFileFromArchive(*archive_result, file_path,
+                                                                    open_mode);
     if (file_result.Failed())
         return false;
 
@@ -768,6 +767,7 @@ Module::Interface::Interface(std::shared_ptr<Module> apt, const char* name, u32 
 Module::Interface::~Interface() = default;
 
 Module::Module() {
+    fs = Service::FS::Module::GetCurrent();
     applet_manager = std::make_shared<AppletManager>();
 
     using Kernel::MemoryPermission;
@@ -779,7 +779,9 @@ Module::Module() {
     lock = Kernel::Mutex::Create(false, "APT_U:Lock");
 }
 
-Module::~Module() {}
+Module::~Module() {
+    fs.reset();
+}
 
 void InstallInterfaces(SM::ServiceManager& service_manager) {
     auto apt = std::make_shared<Module>();

@@ -28,7 +28,6 @@
 #include "core/hle/service/err_f.h"
 #include "core/hle/service/frd/frd.h"
 #include "core/hle/service/fs/fs.h"
-#include "core/hle/service/fs/fs_reg.h"
 #include "core/hle/service/gsp/gsp.h"
 #include "core/hle/service/gsp/gsp_lcd.h"
 #include "core/hle/service/hid/hid.h"
@@ -267,7 +266,6 @@ void Init(std::shared_ptr<SM::ServiceManager>& sm) {
 /// Shutdown ServiceManager
 void Shutdown() {
     BOSS::Shutdown();
-    FS::FS_REG::UnregisterArchiveTypes();
 
     g_kernel_named_ports.clear();
     LOG_DEBUG(Service, "shutdown OK");

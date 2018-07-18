@@ -5,41 +5,19 @@
 #pragma once
 
 #include "core/hle/result.h"
-#include "core/hle/service/fs/directory.h"
-#include "core/hle/service/fs/file.h"
+#include "core/hle/service/fs/archive_manager.h"
 #include "core/hle/service/service.h"
 
 namespace Service {
 namespace FS {
 
-/// The unique system identifier hash, also known as ID0
-static constexpr char SYSTEM_ID[]{"00000000000000000000000000000000"};
-/// The scrambled SD card CID, also known as ID1
-static constexpr char SDCARD_ID[]{"00000000000000000000000000000000"};
-
-/// Media types for the archives
-enum class MediaType : u32 { NAND = 0, SDMC = 1, GameCard = 2 };
-
-/// Supported archive types
-enum class ArchiveIdCode : u32 {
-    SelfNCCH = 0x00000003,
-    SaveData = 0x00000004,
-    ExtSaveData = 0x00000006,
-    SharedExtSaveData = 0x00000007,
-    SystemSaveData = 0x00000008,
-    SDMC = 0x00000009,
-    SDMCWriteOnly = 0x0000000A,
-    NCCH = 0x2345678A,
-    OtherSaveDataGeneral = 0x567890B2,
-    OtherSaveDataPermitted = 0x567890B4,
-};
-
-typedef u64 ArchiveHandle;
-
 class Module final {
 public:
-    Module() = default;
-    ~Module() = default;
+    Module();
+    ~Module();
+
+    ArchiveManager* GetArchiveManager();
+    static std::shared_ptr<Module> GetCurrent();
 
     class Interface : public ServiceFramework<Interface> {
     public:
@@ -1484,6 +1462,9 @@ public:
     private:
         std::shared_ptr<Module> fs;
     };
+
+    std::unique_ptr<ArchiveManager> archive_manager;
+    static std::shared_ptr<Module> current_fs;
 };
 
 /// Initialize the FS services

@@ -7,6 +7,7 @@
 #include <memory>
 #include "common/common_types.h"
 #include "core/hle/ipc_helpers.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/hle/service/service.h"
 
 namespace Service {
@@ -42,6 +43,7 @@ void CheckNew3DS(IPC::RequestBuilder& rb);
 class Module final {
 public:
     Module();
+    ~Module();
 
     class Interface : public ServiceFramework<Interface> {
     public:
@@ -134,6 +136,7 @@ public:
     };
 
 private:
+    std::shared_ptr<Service::FS::Module> fs;
     bool shell_open = true;
     bool battery_is_charging = true;
     bool pedometer_is_counting = false;

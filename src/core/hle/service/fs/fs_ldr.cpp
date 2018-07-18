@@ -66,7 +66,7 @@ FS_LDR::FS_LDR(std::shared_ptr<Module> fs) : Module::Interface(std::move(fs), "f
         {0x08320102, nullptr, "LegacyReadExtSaveDataIcon"},
         {0x08330082, nullptr, "LegacyEnumerateExtSaveData"},
         {0x08340082, nullptr, "LegacyEnumerateSharedExtSaveData"},
-        {0x08350080, &FS_USER::ObsoletedDeleteExtSaveData, "Obsoleted_3_0_DeleteExtSaveData"},
+        {0x08350080, &FS_LDR::ObsoletedDeleteExtSaveData, "Obsoleted_3_0_DeleteExtSaveData"},
         {0x08360080, nullptr, "LegacyDeleteSharedExtSaveData"},
         {0x08370040, nullptr, "SetCardSpiBaudRate"},
         {0x08380040, nullptr, "SetCardSpiBusMode"},

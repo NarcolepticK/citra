@@ -53,7 +53,7 @@ void Module::Interface::OpenFile(Kernel::HLERequestContext& ctx) {
     ASSERT(filename.size() == filename_size);
     const FileSys::Path file_path(filename_type, filename);
     const ResultVal<std::shared_ptr<File>> file_res =
-        FS_REG::OpenFileFromArchive(archive_handle, file_path, mode);
+        fs->archive_manager->OpenFileFromArchive(archive_handle, file_path, mode);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     rb.Push(file_res.Code());
@@ -84,7 +84,8 @@ void Module::Interface::OpenFileDirectly(Kernel::HLERequestContext& ctx) {
     ASSERT(filename.size() == filename_size);
     const FileSys::Path archive_path(archivename_type, archivename);
     const FileSys::Path file_path(filename_type, filename);
-    const ResultVal<ArchiveHandle> archive_handle = FS_REG::OpenArchive(archive_id, archive_path);
+    const ResultVal<ArchiveHandle> archive_handle = fs->archive_manager->OpenArchive(archive_id,
+                                                                                     archive_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     if (archive_handle.Failed()) {
@@ -95,10 +96,10 @@ void Module::Interface::OpenFileDirectly(Kernel::HLERequestContext& ctx) {
         rb.PushMoveObjects<Kernel::Object>(nullptr);
         return;
     }
-    SCOPE_EXIT({ Service::FS::FS_REG::CloseArchive(*archive_handle); });
+    SCOPE_EXIT({ fs->archive_manager->CloseArchive(*archive_handle); });
 
     const ResultVal<std::shared_ptr<File>> file_res =
-        FS_REG::OpenFileFromArchive(*archive_handle, file_path, mode);
+        fs->archive_manager->OpenFileFromArchive(*archive_handle, file_path, mode);
     rb.Push(file_res.Code());
     if (file_res.Succeeded()) {
         const std::shared_ptr<File> file = *file_res;
@@ -125,7 +126,7 @@ void Module::Interface::DeleteFile(Kernel::HLERequestContext& ctx) {
     const FileSys::Path file_path(filename_type, filename);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::DeleteFileFromArchive(archive_handle, file_path));
+    rb.Push(fs->archive_manager->DeleteFileFromArchive(archive_handle, file_path));
 
     LOG_DEBUG(Service_FS, "type={} size={} data={}", static_cast<u32>(filename_type), filename_size,
               file_path.DebugStr());
@@ -148,8 +149,8 @@ void Module::Interface::RenameFile(Kernel::HLERequestContext& ctx) {
     const FileSys::Path dest_file_path(dest_filename_type, dest_filename);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::RenameFileBetweenArchives(src_archive_handle, src_file_path,
-                                              dest_archive_handle, dest_file_path));
+    rb.Push(fs->archive_manager->RenameFileBetweenArchives(src_archive_handle, src_file_path,
+                                                           dest_archive_handle, dest_file_path));
 
     LOG_DEBUG(Service_FS,
               "src_type={} src_size={} src_data={} dest_type={} dest_size={} dest_data={}",
@@ -168,7 +169,7 @@ void Module::Interface::DeleteDirectory(Kernel::HLERequestContext& ctx) {
     const FileSys::Path dir_path(dirname_type, dirname);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::DeleteDirectoryFromArchive(archive_handle, dir_path));
+    rb.Push(fs->archive_manager->DeleteDirectoryFromArchive(archive_handle, dir_path));
 
     LOG_DEBUG(Service_FS, "type={} size={} data={}", static_cast<u32>(dirname_type), dirname_size,
               dir_path.DebugStr());
@@ -185,7 +186,7 @@ void Module::Interface::DeleteDirectoryRecursively(Kernel::HLERequestContext& ct
     const FileSys::Path dir_path(dirname_type, dirname);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::DeleteDirectoryRecursivelyFromArchive(archive_handle, dir_path));
+    rb.Push(fs->archive_manager->DeleteDirectoryRecursivelyFromArchive(archive_handle, dir_path));
 
     LOG_DEBUG(Service_FS, "type={} size={} data={}", static_cast<u32>(dirname_type), dirname_size,
               dir_path.DebugStr());
@@ -205,7 +206,7 @@ void Module::Interface::CreateFile(Kernel::HLERequestContext& ctx) {
     const FileSys::Path file_path(filename_type, filename);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::CreateFileInArchive(archive_handle, file_path, file_size));
+    rb.Push(fs->archive_manager->CreateFileInArchive(archive_handle, file_path, file_size));
 
     LOG_DEBUG(Service_FS, "type={} attributes={} size={:x} data={}",
               static_cast<u32>(filename_type), attributes, file_size, file_path.DebugStr());
@@ -223,7 +224,7 @@ void Module::Interface::CreateDirectory(Kernel::HLERequestContext& ctx) {
     const FileSys::Path dir_path(dirname_type, dirname);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::CreateDirectoryFromArchive(archive_handle, dir_path));
+    rb.Push(fs->archive_manager->CreateDirectoryFromArchive(archive_handle, dir_path));
 
     LOG_DEBUG(Service_FS, "type={} size={} data={}", static_cast<u32>(dirname_type), dirname_size,
               dir_path.DebugStr());
@@ -246,8 +247,9 @@ void Module::Interface::RenameDirectory(Kernel::HLERequestContext& ctx) {
     const FileSys::Path dest_dir_path(dest_dirname_type, dest_dirname);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::RenameDirectoryBetweenArchives(src_archive_handle, src_dir_path,
-                                                   dest_archive_handle, dest_dir_path));
+    rb.Push(fs->archive_manager->RenameDirectoryBetweenArchives(src_archive_handle, src_dir_path,
+                                                                dest_archive_handle,
+                                                                dest_dir_path));
 
     LOG_DEBUG(Service_FS,
               "src_type={} src_size={} src_data={} dest_type={} dest_size={} dest_data={}",
@@ -264,7 +266,7 @@ void Module::Interface::OpenDirectory(Kernel::HLERequestContext& ctx) {
     ASSERT(dirname.size() == dirname_size);
     const FileSys::Path dir_path(dirname_type, dirname);
     const ResultVal<std::shared_ptr<Directory>> dir_res =
-        FS_REG::OpenDirectoryFromArchive(archive_handle, dir_path);
+        fs->archive_manager->OpenDirectoryFromArchive(archive_handle, dir_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     rb.Push(dir_res.Code());
@@ -291,7 +293,8 @@ void Module::Interface::OpenArchive(Kernel::HLERequestContext& ctx) {
     const std::vector<u8> archivename = rp.PopStaticBuffer();
     ASSERT(archivename.size() == archivename_size);
     const FileSys::Path archive_path(archivename_type, archivename);
-    const ResultVal<ArchiveHandle> handle = FS_REG::OpenArchive(archive_id, archive_path);
+    const ResultVal<ArchiveHandle> handle = fs->archive_manager->OpenArchive(archive_id,
+                                                                             archive_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(3, 0);
     rb.Push(handle.Code());
@@ -313,7 +316,7 @@ void Module::Interface::CloseArchive(Kernel::HLERequestContext& ctx) {
     const auto archive_handle = rp.PopRaw<ArchiveHandle>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::CloseArchive(archive_handle));
+    rb.Push(fs->archive_manager->CloseArchive(archive_handle));
 
     LOG_DEBUG(Service_FS, "called");
 }
@@ -373,7 +376,7 @@ void Module::Interface::FormatSaveData(Kernel::HLERequestContext& ctx) {
     format_info.number_directories = number_directories;
     format_info.number_files = number_files;
     format_info.total_size = block_size * 512;
-    rb.Push(FS_REG::FormatArchive(ArchiveIdCode::SaveData, format_info));
+    rb.Push(fs->archive_manager->FormatArchive(ArchiveIdCode::SaveData, format_info));
 
     LOG_WARNING(Service_FS, " (STUBBED), archive_path={}", archive_path.DebugStr());
 }
@@ -394,7 +397,7 @@ void Module::Interface::LegacyFormatThisUserSaveData(Kernel::HLERequestContext& 
     format_info.total_size = block_size * 512;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::FormatArchive(ArchiveIdCode::SaveData, format_info));
+    rb.Push(fs->archive_manager->FormatArchive(ArchiveIdCode::SaveData, format_info));
 
     LOG_DEBUG(Service_FS, "called");
 }
@@ -402,7 +405,7 @@ void Module::Interface::LegacyFormatThisUserSaveData(Kernel::HLERequestContext& 
 void Module::Interface::GetFreeBytes(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x812, 2, 0);
     const ArchiveHandle archive_handle = rp.PopRaw<ArchiveHandle>();
-    ResultVal<u64> bytes_res = FS_REG::GetFreeBytesInArchive(archive_handle);
+    ResultVal<u64> bytes_res = fs->archive_manager->GetFreeBytesInArchive(archive_handle);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(3, 0);
     rb.Push(bytes_res.Code());
@@ -437,7 +440,8 @@ void Module::Interface::CreateExtSaveData(Kernel::HLERequestContext& ctx) {
     format_info.total_size = 0;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
-    rb.Push(FS_REG::CreateExtSaveData(media_type, save_high, save_low, icon, format_info));
+    rb.Push(fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon,
+                                                   format_info));
     rb.PushMappedBuffer(icon_buffer);
 
     LOG_WARNING(Service_FS,
@@ -454,7 +458,7 @@ void Module::Interface::DeleteExtSaveData(Kernel::HLERequestContext& ctx) {
     const u32 unknown = rp.Pop<u32>(); // TODO(Subv): Figure out what this is
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::DeleteExtSaveData(media_type, save_high, save_low));
+    rb.Push(fs->archive_manager->DeleteExtSaveData(media_type, save_high, save_low));
 
     LOG_WARNING(Service_FS,
                 "(STUBBED) save_low={:08X} save_high={:08X} media_type={:08X} unknown={:08X}",
@@ -477,7 +481,7 @@ void Module::Interface::DeleteSystemSaveData(Kernel::HLERequestContext& ctx) {
     const u32 savedata_low = rp.Pop<u32>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::DeleteSystemSaveData(savedata_high, savedata_low));
+    rb.Push(fs->archive_manager->DeleteSystemSaveData(savedata_high, savedata_low));
 
     LOG_DEBUG(Service_FS, "called");
 }
@@ -495,7 +499,7 @@ void Module::Interface::CreateSystemSaveData(Kernel::HLERequestContext& ctx) {
     const bool duplicate = rp.Pop<bool>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(FS_REG::CreateSystemSaveData(savedata_high, savedata_low));
+    rb.Push(fs->archive_manager->CreateSystemSaveData(savedata_high, savedata_low));
 
     LOG_WARNING(
         Service_FS,
@@ -518,7 +522,7 @@ void Module::Interface::LegacyCreateSystemSaveData(Kernel::HLERequestContext& ct
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     // With this command, the SystemSaveData always has save_high = 0 (Always created in the NAND)
-    rb.Push(FS_REG::CreateSystemSaveData(0, savedata_id));
+    rb.Push(fs->archive_manager->CreateSystemSaveData(0, savedata_id));
 
     LOG_WARNING(Service_FS,
                 "(STUBBED) savedata_id={:08X} total_size={:08X} block_size={:08X} directories={} "
@@ -583,7 +587,7 @@ void Module::Interface::GetFormatInfo(Kernel::HLERequestContext& ctx) {
     const std::vector<u8> archivename = rp.PopStaticBuffer();
     ASSERT(archivename.size() == archivename_size);
     const FileSys::Path archive_path(archivename_type, archivename);
-    const auto format_info = FS_REG::GetArchiveFormatInfo(archive_id, archive_path);
+    const auto format_info = fs->archive_manager->GetArchiveFormatInfo(archive_id, archive_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(5, 0);
     rb.Push(format_info.Code());
@@ -631,12 +635,12 @@ void Module::Interface::GetProgramLaunchInfo(Kernel::HLERequestContext& ctx) {
 
 void Module::Interface::ObsoletedCreateExtSaveData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x830, 6, 2);
-    MediaType media_type = static_cast<MediaType>(rp.Pop<u8>());
-    u32 save_low = rp.Pop<u32>();
-    u32 save_high = rp.Pop<u32>();
-    u32 icon_size = rp.Pop<u32>();
-    u32 directories = rp.Pop<u32>();
-    u32 files = rp.Pop<u32>();
+    const MediaType media_type = static_cast<MediaType>(rp.Pop<u8>());
+    const u32 save_low = rp.Pop<u32>();
+    const u32 save_high = rp.Pop<u32>();
+    const u32 icon_size = rp.Pop<u32>();
+    const u32 directories = rp.Pop<u32>();
+    const u32 files = rp.Pop<u32>();
     auto icon_buffer = rp.PopMappedBuffer();
 
     std::vector<u8> icon(icon_size);
@@ -649,7 +653,8 @@ void Module::Interface::ObsoletedCreateExtSaveData(Kernel::HLERequestContext& ct
     format_info.total_size = 0;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
-    rb.Push(Service::FS::CreateExtSaveData(media_type, save_high, save_low, icon, format_info));
+    rb.Push(fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon,
+            format_info));
     rb.PushMappedBuffer(icon_buffer);
 
     LOG_DEBUG(Service_FS,
@@ -660,11 +665,11 @@ void Module::Interface::ObsoletedCreateExtSaveData(Kernel::HLERequestContext& ct
 
 void Module::Interface::ObsoletedDeleteExtSaveData(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x835, 2, 0);
-    MediaType media_type = static_cast<MediaType>(rp.Pop<u8>());
-    u32 save_low = rp.Pop<u32>();
+    const MediaType media_type = static_cast<MediaType>(rp.Pop<u8>());
+    const u32 save_low = rp.Pop<u32>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(Service::FS::DeleteExtSaveData(media_type, 0, save_low));
+    rb.Push(fs->archive_manager->DeleteExtSaveData(media_type, 0, save_low));
 
     LOG_DEBUG(Service_FS, "called, save_low={:08X} media_type={:08X}", save_low,
               static_cast<u32>(media_type));
@@ -721,11 +726,31 @@ Module::Interface::Interface(std::shared_ptr<Module> fs, const char* name, u32 m
 
 Module::Interface::~Interface() {}
 
+Module::Module() {
+    archive_manager = std::make_unique<ArchiveManager>();
+}
+
+Module::~Module() {}
+
+ArchiveManager* Module::GetArchiveManager() {
+    return archive_manager.get();
+}
+
+std::shared_ptr<Module> Module::current_fs;
+
+std::shared_ptr<Module> Module::GetCurrent() {
+    if (!current_fs)
+        current_fs = std::make_shared<Module>();
+    auto cur_fs(current_fs);
+    return std::move(cur_fs);
+}
+
 void InstallInterfaces(SM::ServiceManager& service_manager) {
     auto fs = std::make_shared<Module>();
     std::make_shared<FS_LDR>(fs)->InstallAsService(service_manager);
     std::make_shared<FS_REG>(fs)->InstallAsService(service_manager);
     std::make_shared<FS_USER>(fs)->InstallAsService(service_manager);
+    Module::current_fs = std::move(fs);
 }
 
 } // namespace FS

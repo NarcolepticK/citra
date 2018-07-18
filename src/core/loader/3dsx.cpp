@@ -8,7 +8,7 @@
 #include "core/file_sys/archive_selfncch.h"
 #include "core/hle/kernel/process.h"
 #include "core/hle/kernel/resource_limit.h"
-#include "core/hle/service/fs/fs_reg.h"
+#include "core/hle/service/fs/archive_registry.h"
 #include "core/loader/3dsx.h"
 #include "core/memory.h"
 
@@ -277,7 +277,9 @@ ResultStatus AppLoader_THREEDSX::Load(Kernel::SharedPtr<Kernel::Process>& proces
 
     process->Run(48, Kernel::DEFAULT_STACK_SIZE);
 
-    Service::FS::FS_REG::RegisterSelfNCCH(*this);
+    LOG_WARNING(Service_FS, "(STUBBED) called");
+    Service::FS::ArchiveRegistry::GetShared()->RegisterSelfNCCH(*this);
+    LOG_WARNING(Service_FS, "(STUBBED) called");
 
     is_loaded = true;
     return ResultStatus::Success;

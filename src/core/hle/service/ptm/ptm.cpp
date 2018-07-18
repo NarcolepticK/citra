@@ -6,7 +6,7 @@
 #include "common/logging/log.h"
 #include "core/file_sys/errors.h"
 #include "core/file_sys/file_backend.h"
-#include "core/hle/service/fs/fs_reg.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/hle/service/ptm/ptm.h"
 #include "core/hle/service/ptm/ptm_gets.h"
 #include "core/hle/service/ptm/ptm_play.h"
@@ -138,28 +138,31 @@ void Module::Interface::CheckNew3DS(Kernel::HLERequestContext& ctx) {
 }
 
 Module::Module() {
+    fs = Service::FS::Module::GetCurrent();
     // Open the SharedExtSaveData archive 0xF000000B and create the gamecoin.dat file if it doesn't
     // exist
     FileSys::Path archive_path(ptm_shared_extdata_id);
-    auto archive_result = Service::FS::FS_REG::OpenArchive(
-        Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+    auto archive_result = fs->GetArchiveManager()->OpenArchive(
+                                      Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
     // If the archive didn't exist, create the files inside
     if (archive_result.Code() == FileSys::ERR_NOT_FORMATTED) {
         // Format the archive to create the directories
-        Service::FS::FS_REG::FormatArchive(Service::FS::ArchiveIdCode::SharedExtSaveData,
-                                           FileSys::ArchiveFormatInfo(), archive_path);
+        fs->GetArchiveManager()->FormatArchive(Service::FS::ArchiveIdCode::SharedExtSaveData,
+                                               FileSys::ArchiveFormatInfo(), archive_path);
         // Open it again to get a valid archive now that the folder exists
-        archive_result = Service::FS::FS_REG::OpenArchive(
-            Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+        archive_result = fs->GetArchiveManager()->OpenArchive(
+                                      Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
         ASSERT_MSG(archive_result.Succeeded(), "Could not open the PTM SharedExtSaveData archive!");
 
         FileSys::Path gamecoin_path("/gamecoin.dat");
-        Service::FS::FS_REG::CreateFileInArchive(*archive_result, gamecoin_path, sizeof(GameCoin));
+        fs->GetArchiveManager()->CreateFileInArchive(*archive_result, gamecoin_path,
+                                                     sizeof(GameCoin));
         FileSys::Mode open_mode = {};
         open_mode.write_flag.Assign(1);
         // Open the file and write the default gamecoin information
-        auto gamecoin_result =
-            Service::FS::FS_REG::OpenFileFromArchive(*archive_result, gamecoin_path, open_mode);
+        auto gamecoin_result = fs->GetArchiveManager()->OpenFileFromArchive(*archive_result,
+                                                                            gamecoin_path,
+                                                                            open_mode);
         if (gamecoin_result.Succeeded()) {
             auto gamecoin = std::move(gamecoin_result).Unwrap();
             gamecoin->backend->Write(0, sizeof(GameCoin), true,
@@ -167,6 +170,10 @@ Module::Module() {
             gamecoin->backend->Close();
         }
     }
+}
+
+Module::~Module() {
+    fs.reset();
 }
 
 Module::Interface::Interface(std::shared_ptr<Module> ptm, const char* name, u32 max_session)

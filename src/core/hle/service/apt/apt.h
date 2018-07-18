@@ -9,6 +9,7 @@
 #include "common/common_types.h"
 #include "common/swap.h"
 #include "core/hle/kernel/kernel.h"
+#include "core/hle/service/fs/fs.h"
 #include "core/hle/service/service.h"
 
 namespace Kernel {
@@ -529,6 +530,7 @@ private:
         ScreencapPostPermission::CleanThePermission; // TODO(JamePeng): verify the initial value
 
     std::shared_ptr<AppletManager> applet_manager;
+    std::shared_ptr<Service::FS::Module> fs;
 };
 
 void InstallInterfaces(SM::ServiceManager& service_manager);

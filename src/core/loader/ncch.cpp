@@ -19,7 +19,7 @@
 #include "core/hle/kernel/resource_limit.h"
 #include "core/hle/service/am/am.h"
 #include "core/hle/service/cfg/cfg.h"
-#include "core/hle/service/fs/fs_reg.h"
+#include "core/hle/service/fs/archive_registry.h"
 #include "core/loader/ncch.h"
 #include "core/loader/smdh.h"
 #include "core/memory.h"
@@ -180,7 +180,9 @@ ResultStatus AppLoader_NCCH::Load(Kernel::SharedPtr<Kernel::Process>& process) {
     if (ResultStatus::Success != result)
         return result;
 
-    Service::FS::FS_REG::RegisterSelfNCCH(*this);
+    LOG_WARNING(Service_FS, "(STUBBED) called");
+    Service::FS::ArchiveRegistry::GetShared()->RegisterSelfNCCH(*this);
+    LOG_WARNING(Service_FS, "(STUBBED) called");
 
     ParseRegionLockoutInfo();
 
