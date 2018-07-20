@@ -84,8 +84,8 @@ void Module::Interface::OpenFileDirectly(Kernel::HLERequestContext& ctx) {
     ASSERT(filename.size() == filename_size);
     const FileSys::Path archive_path(archivename_type, archivename);
     const FileSys::Path file_path(filename_type, filename);
-    const ResultVal<ArchiveHandle> archive_handle = fs->archive_manager->OpenArchive(archive_id,
-                                                                                     archive_path);
+    const ResultVal<ArchiveHandle> archive_handle =
+        fs->archive_manager->OpenArchive(archive_id, archive_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     if (archive_handle.Failed()) {
@@ -247,9 +247,8 @@ void Module::Interface::RenameDirectory(Kernel::HLERequestContext& ctx) {
     const FileSys::Path dest_dir_path(dest_dirname_type, dest_dirname);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(fs->archive_manager->RenameDirectoryBetweenArchives(src_archive_handle, src_dir_path,
-                                                                dest_archive_handle,
-                                                                dest_dir_path));
+    rb.Push(fs->archive_manager->RenameDirectoryBetweenArchives(
+        src_archive_handle, src_dir_path, dest_archive_handle, dest_dir_path));
 
     LOG_DEBUG(Service_FS,
               "src_type={} src_size={} src_data={} dest_type={} dest_size={} dest_data={}",
@@ -293,8 +292,8 @@ void Module::Interface::OpenArchive(Kernel::HLERequestContext& ctx) {
     const std::vector<u8> archivename = rp.PopStaticBuffer();
     ASSERT(archivename.size() == archivename_size);
     const FileSys::Path archive_path(archivename_type, archivename);
-    const ResultVal<ArchiveHandle> handle = fs->archive_manager->OpenArchive(archive_id,
-                                                                             archive_path);
+    const ResultVal<ArchiveHandle> handle =
+        fs->archive_manager->OpenArchive(archive_id, archive_path);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(3, 0);
     rb.Push(handle.Code());
@@ -440,8 +439,8 @@ void Module::Interface::CreateExtSaveData(Kernel::HLERequestContext& ctx) {
     format_info.total_size = 0;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
-    rb.Push(fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon,
-                                                   format_info));
+    rb.Push(
+        fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon, format_info));
     rb.PushMappedBuffer(icon_buffer);
 
     LOG_WARNING(Service_FS,
@@ -653,8 +652,8 @@ void Module::Interface::ObsoletedCreateExtSaveData(Kernel::HLERequestContext& ct
     format_info.total_size = 0;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
-    rb.Push(fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon,
-            format_info));
+    rb.Push(
+        fs->archive_manager->CreateExtSaveData(media_type, save_high, save_low, icon, format_info));
     rb.PushMappedBuffer(icon_buffer);
 
     LOG_DEBUG(Service_FS,

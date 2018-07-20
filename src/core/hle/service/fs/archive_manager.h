@@ -44,8 +44,7 @@ public:
 
     ResultCode DeleteFileFromArchive(const ArchiveHandle handle, const Path& path);
     ResultCode DeleteDirectoryFromArchive(const ArchiveHandle handle, const Path& path);
-    ResultCode DeleteDirectoryRecursivelyFromArchive(const ArchiveHandle handle,
-                                                     const Path& path);
+    ResultCode DeleteDirectoryRecursivelyFromArchive(const ArchiveHandle handle, const Path& path);
 
     ResultCode FormatArchive(const ArchiveIdCode id_code, const ArchiveFormatInfo& format_info,
                              const Path& path = FileSys::Path());
@@ -66,7 +65,6 @@ public:
                                               const Path& dest_path);
     ResultCode RenameFileBetweenArchives(const ArchiveHandle src_handle, const Path& src_path,
                                          const ArchiveHandle dest_handle, const Path& dest_path);
-
 
     ResultCode CreateExtSaveData(const MediaType media_type, const u32 high, const u32 low,
                                  const std::vector<u8>& smdh_icon,

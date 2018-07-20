@@ -13,7 +13,6 @@ class FS_USER final : public Module::Interface {
 public:
     explicit FS_USER(std::shared_ptr<Module> fs);
     ~FS_USER() = default;
-
 };
 
 } // namespace FS

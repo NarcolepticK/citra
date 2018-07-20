@@ -38,7 +38,7 @@ public:
     ResultCode RenameFile(const Path& src_path, const Path& dest_path);
 
 private:
-    Path archive_path; ///< Path of the Archive
+    Path archive_path;                               ///< Path of the Archive
     std::unique_ptr<ArchiveBackend> archive_backend; ///< Archive backend interface
 };
 

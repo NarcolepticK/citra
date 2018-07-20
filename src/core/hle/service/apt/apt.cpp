@@ -123,8 +123,8 @@ bool Module::LoadSharedFont() {
     std::memcpy(&shared_font_archive_id[0], &shared_font_archive_id_low, sizeof(u64));
     std::memcpy(&shared_font_archive_id[8], &shared_font_archive_id_high, sizeof(u64));
     FileSys::Path archive_path(shared_font_archive_id);
-    auto archive_result = fs->GetArchiveManager()->OpenArchive(Service::FS::ArchiveIdCode::NCCH,
-                                                               archive_path);
+    auto archive_result =
+        fs->GetArchiveManager()->OpenArchive(Service::FS::ArchiveIdCode::NCCH, archive_path);
     if (archive_result.Failed())
         return false;
 
@@ -132,8 +132,8 @@ bool Module::LoadSharedFont() {
     FileSys::Path file_path(romfs_path);
     FileSys::Mode open_mode = {};
     open_mode.read_flag.Assign(1);
-    auto file_result = fs->GetArchiveManager()->OpenFileFromArchive(*archive_result, file_path,
-                                                                    open_mode);
+    auto file_result =
+        fs->GetArchiveManager()->OpenFileFromArchive(*archive_result, file_path, open_mode);
     if (file_result.Failed())
         return false;
 

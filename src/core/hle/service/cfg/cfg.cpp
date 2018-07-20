@@ -400,8 +400,8 @@ ResultCode Module::UpdateConfigNANDSavegame() {
 
     FileSys::Path path("/config");
 
-    auto config_result = fs->GetArchiveManager()->OpenFileFromArchive(cfg_system_save_data_archive,
-                                                                      path, mode);
+    auto config_result =
+        fs->GetArchiveManager()->OpenFileFromArchive(cfg_system_save_data_archive, path, mode);
     ASSERT_MSG(config_result.Succeeded(), "could not open file");
 
     auto config = std::move(config_result).Unwrap();
@@ -532,9 +532,8 @@ ResultCode Module::FormatConfig() {
 ResultCode Module::LoadConfigNANDSaveFile() {
     // Open the SystemSaveData archive 0x00010017
     FileSys::Path archive_path(cfg_system_savedata_id);
-    auto archive_result =
-        fs->GetArchiveManager()->OpenArchive(Service::FS::ArchiveIdCode::SystemSaveData,
-                                             archive_path);
+    auto archive_result = fs->GetArchiveManager()->OpenArchive(
+        Service::FS::ArchiveIdCode::SystemSaveData, archive_path);
 
     // If the archive didn't exist, create the files inside
     if (archive_result.Code() == FileSys::ERR_NOT_FORMATTED) {
@@ -544,7 +543,7 @@ ResultCode Module::LoadConfigNANDSaveFile() {
 
         // Open it again to get a valid archive now that the folder exists
         archive_result = fs->GetArchiveManager()->OpenArchive(
-                                         Service::FS::ArchiveIdCode::SystemSaveData, archive_path);
+            Service::FS::ArchiveIdCode::SystemSaveData, archive_path);
     }
 
     ASSERT_MSG(archive_result.Succeeded(), "Could not open the CFG SystemSaveData archive!");

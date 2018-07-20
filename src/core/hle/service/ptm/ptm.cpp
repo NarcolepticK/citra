@@ -143,7 +143,7 @@ Module::Module() {
     // exist
     FileSys::Path archive_path(ptm_shared_extdata_id);
     auto archive_result = fs->GetArchiveManager()->OpenArchive(
-                                      Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+        Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
     // If the archive didn't exist, create the files inside
     if (archive_result.Code() == FileSys::ERR_NOT_FORMATTED) {
         // Format the archive to create the directories
@@ -151,7 +151,7 @@ Module::Module() {
                                                FileSys::ArchiveFormatInfo(), archive_path);
         // Open it again to get a valid archive now that the folder exists
         archive_result = fs->GetArchiveManager()->OpenArchive(
-                                      Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
+            Service::FS::ArchiveIdCode::SharedExtSaveData, archive_path);
         ASSERT_MSG(archive_result.Succeeded(), "Could not open the PTM SharedExtSaveData archive!");
 
         FileSys::Path gamecoin_path("/gamecoin.dat");
@@ -160,9 +160,8 @@ Module::Module() {
         FileSys::Mode open_mode = {};
         open_mode.write_flag.Assign(1);
         // Open the file and write the default gamecoin information
-        auto gamecoin_result = fs->GetArchiveManager()->OpenFileFromArchive(*archive_result,
-                                                                            gamecoin_path,
-                                                                            open_mode);
+        auto gamecoin_result =
+            fs->GetArchiveManager()->OpenFileFromArchive(*archive_result, gamecoin_path, open_mode);
         if (gamecoin_result.Succeeded()) {
             auto gamecoin = std::move(gamecoin_result).Unwrap();
             gamecoin->backend->Write(0, sizeof(GameCoin), true,

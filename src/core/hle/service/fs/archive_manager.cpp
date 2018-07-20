@@ -140,8 +140,7 @@ ResultVal<ArchiveHandle> ArchiveManager::OpenArchive(const ArchiveIdCode id_code
 }
 
 ResultVal<std::shared_ptr<Directory>> ArchiveManager::OpenDirectoryFromArchive(
-                                                                        const ArchiveHandle handle,
-                                                                        const Path& path) {
+    const ArchiveHandle handle, const Path& path) {
     const auto archive = GetArchive(handle);
 
     if (archive == nullptr)
@@ -218,9 +217,9 @@ ResultCode ArchiveManager::CreateExtSaveData(const MediaType media_type, const u
                                              const ArchiveFormatInfo& format_info) {
     // Construct the binary path to the archive first
     const Path path = FileSys::ConstructExtDataBinaryPath(static_cast<u32>(media_type), high, low);
-    const auto archive = archive_registry->GetRegisteredArchive(media_type == MediaType::NAND ?
-                                                                ArchiveIdCode::SharedExtSaveData :
-                                                                ArchiveIdCode::ExtSaveData);
+    const auto archive = archive_registry->GetRegisteredArchive(
+        media_type == MediaType::NAND ? ArchiveIdCode::SharedExtSaveData
+                                      : ArchiveIdCode::ExtSaveData);
 
     if (archive == nullptr)
         return UnimplementedFunction(ErrorModule::FS); // TODO(Subv): Find the right error

@@ -47,8 +47,8 @@ ArchiveFactory* ArchiveRegistry::GetRegisteredArchive(const ArchiveIdCode id_cod
 }
 
 void ArchiveRegistry::RegisterSelfNCCH(Loader::AppLoader& app_loader) {
-    auto* factory = static_cast<FileSys::ArchiveFactory_SelfNCCH*>(GetRegisteredArchive(
-                                                                   ArchiveIdCode::SelfNCCH));
+    auto* factory = static_cast<FileSys::ArchiveFactory_SelfNCCH*>(
+        GetRegisteredArchive(ArchiveIdCode::SelfNCCH));
     factory->Register(app_loader);
 }
 
@@ -128,7 +128,6 @@ ResultCode ArchiveRegistry::RegisterArchiveType(std::unique_ptr<FileSys::Archive
     return RESULT_SUCCESS;
 }
 
-//boost::container::flat_map<ArchiveIdCode, std::unique_ptr<ArchiveFactory>> ArchiveRegistry::id_code_map;
 std::shared_ptr<ArchiveRegistry> ArchiveRegistry::archive_registry;
 
 } // namespace FS
