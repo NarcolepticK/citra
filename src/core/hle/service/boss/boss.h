@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "core/hle/kernel/event.h"
 #include "core/hle/service/service.h"
 
 namespace Service {
@@ -949,11 +950,15 @@ public:
 
     private:
         std::shared_ptr<Module> boss;
+
         u8 new_arrival_flag;
         u8 ns_data_new_flag;
         u8 ns_data_new_flag_privileged;
         u8 output_flag;
     };
+
+private:
+    Kernel::SharedPtr<Kernel::Event> task_finish_event;
 };
 
 void InstallInterfaces(SM::ServiceManager& service_manager);

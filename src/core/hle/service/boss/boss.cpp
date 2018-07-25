@@ -96,14 +96,12 @@ void Module::Interface::GetNewArrivalFlag(Kernel::HLERequestContext& ctx) {
 
 void Module::Interface::RegisterNewArrivalEvent(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x08, 0, 2);
-    const u32 unk_param1 = rp.Pop<u32>();
-    const u32 unk_param2 = rp.Pop<u32>();
+    const auto event = rp.PopObject<Kernel::Event>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_WARNING(Service_BOSS, "(STUBBED) unk_param1={:#010X}, unk_param2={:#010X}", unk_param1,
-                unk_param2);
+    LOG_WARNING(Service_BOSS, "(STUBBED)");
 }
 
 void Module::Interface::SetOptoutFlag(Kernel::HLERequestContext& ctx) {
@@ -412,7 +410,7 @@ void Module::Interface::GetTaskFinishHandle(Kernel::HLERequestContext& ctx) {
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     rb.Push(RESULT_SUCCESS);
-    rb.Skip(2, true);
+    rb.PushCopyObjects<Kernel::Event>(boss->task_finish_event);
 
     LOG_WARNING(Service_BOSS, "(STUBBED) called");
 }
@@ -905,7 +903,10 @@ void Module::Interface::GetNsDataNewFlagPrivileged(Kernel::HLERequestContext& ct
 Module::Interface::Interface(std::shared_ptr<Module> boss, const char* name, u32 max_session)
     : ServiceFramework(name, max_session), boss(std::move(boss)) {}
 
-Module::Module() {}
+Module::Module() {
+    using namespace Kernel;
+    task_finish_event = Event::Create(Kernel::ResetType::OneShot, "BOSS::task_finish_event");
+}
 
 void InstallInterfaces(SM::ServiceManager& service_manager) {
     auto boss = std::make_shared<Module>();
