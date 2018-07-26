@@ -97,6 +97,7 @@ void CSND_SND::AcquireCapUnit(Kernel::HLERequestContext& ctx) {
         LOG_WARNING(Service_CSND, "No more capture units available");
         rb.Push(ResultCode(ErrorDescription::InvalidResultValue, ErrorModule::CSND,
                            ErrorSummary::OutOfResource, ErrorLevel::Status));
+        rb.Skip(1, false);
         return;
     }
     rb.Push(RESULT_SUCCESS);
