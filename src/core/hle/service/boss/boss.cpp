@@ -905,6 +905,7 @@ Module::Interface::Interface(std::shared_ptr<Module> boss, const char* name, u32
 
 Module::Module() {
     using namespace Kernel;
+    // TODO: verify ResetType
     task_finish_event = Event::Create(Kernel::ResetType::OneShot, "BOSS::task_finish_event");
 }
 
