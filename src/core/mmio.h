@@ -32,6 +32,9 @@ public:
     virtual void Write64(VAddr addr, u64 data) = 0;
 
     virtual bool WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) = 0;
+
+    static constexpr u32 PADDR_BASE = 0x10100000;
+    static constexpr u32 VADDR_BASE = 0x1EC00000;
 };
 
 using MMIORegionPointer = std::shared_ptr<MMIORegion>;

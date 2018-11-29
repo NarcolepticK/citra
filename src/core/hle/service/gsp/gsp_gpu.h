@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <cstddef>
-#include <string>
 #include "common/bit_field.h"
 #include "common/common_types.h"
 #include "core/hle/kernel/event.h"
@@ -20,6 +18,28 @@ class System;
 namespace Kernel {
 class SharedMemory;
 } // namespace Kernel
+
+namespace ErrCodes {
+enum {
+    // TODO(purpasmart): Check if this name fits its actual usage
+    OutofRangeOrMisalignedAddress = 513,
+    FirstInitialization = 519,
+};
+}
+
+constexpr ResultCode RESULT_FIRST_INITIALIZATION(ErrCodes::FirstInitialization, ErrorModule::GX,
+                                                     ErrorSummary::Success, ErrorLevel::Success);
+constexpr ResultCode ERR_REGS_OUTOFRANGE_OR_MISALIGNED(ErrCodes::OutofRangeOrMisalignedAddress,
+                                                           ErrorModule::GX,
+                                                           ErrorSummary::InvalidArgument,
+                                                           ErrorLevel::Usage); // 0xE0E02A01
+constexpr ResultCode ERR_REGS_MISALIGNED(ErrorDescription::MisalignedSize, ErrorModule::GX,
+                                             ErrorSummary::InvalidArgument,
+                                             ErrorLevel::Usage); // 0xE0E02BF2
+constexpr ResultCode ERR_REGS_INVALID_SIZE(ErrorDescription::InvalidSize, ErrorModule::GX,
+                                               ErrorSummary::InvalidArgument,
+                                               ErrorLevel::Usage); // 0xE0E02BEC
+
 
 namespace Service::GSP {
 
@@ -186,7 +206,7 @@ struct SessionData : public Kernel::SessionRequestHandler::SessionDataBase {
     SessionData();
     ~SessionData();
 
-    /// Event triggered when GSP interrupt has been signalled
+     /// Event triggered when GSP interrupt has been signalled
     Kernel::SharedPtr<Kernel::Event> interrupt_event;
     /// Thread index into interrupt relay queue
     u32 thread_id;
@@ -199,6 +219,7 @@ public:
     explicit GSP_GPU(Core::System& system);
     ~GSP_GPU() = default;
 
+    void ClientConnected(Kernel::SharedPtr<Kernel::ServerSession> server_session) override;
     void ClientDisconnected(Kernel::SharedPtr<Kernel::ServerSession> server_session) override;
 
     /**
@@ -217,7 +238,17 @@ public:
      */
     FrameBufferUpdate* GetFrameBufferInfo(u32 thread_id, u32 screen_index);
 
+    /// Maximum number of threads that can be registered at the same time in the GSP module.
+    static constexpr u32 MaxGSPThreads = 4;
+
+    // Beginning address of HW regs
+    static constexpr u32 REGS_BEGIN = 0x1EB00000;
+    static constexpr u32 MaxReadWriteSize = 0x80;
+
 private:
+    // Utility function to convert register ID to address
+    void WriteGPURegister(u32 id, u32 data);
+
     /**
      * Signals that the specified interrupt type has occurred to userland code for the specified GSP
      * thread id.
@@ -403,17 +434,36 @@ private:
     /// Returns the session data for the specified registered thread id, or nullptr if not found.
     SessionData* FindRegisteredThreadData(u32 thread_id);
 
+    u32 GetUnusedThreadId();
+
+    /// Gets a pointer to a thread command buffer in GSP shared memory
+    inline u8* GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id);
+
+    /// Gets a pointer to the interrupt relay queue for a given thread index
+    inline InterruptRelayQueue* GetInterruptRelayQueue(
+        Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id);
+
+    PAddr VirtualToPhysicalAddress(VAddr addr);
+
+    void WriteSingleHWReg(u32 base_address, u32 data);
+    ResultCode WriteHWRegs(u32 base_address, u32 size_in_bytes, const std::vector<u8>& data);
+    ResultCode WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes,
+                                      const std::vector<u8>& data, const std::vector<u8>& masks);
+
+    ResultCode SetBufferSwap(u32 screen_id, const FrameBufferInfo& info);
+
+    void ExecuteCommand(const Command& command, u32 thread_id);
+
     Core::System& system;
 
     /// GSP shared memory
     Kernel::SharedPtr<Kernel::SharedMemory> shared_memory;
+
+    std::array<bool, MaxGSPThreads> used_thread_ids = {false, false, false, false};
 
     /// Thread id that currently has GPU rights or -1 if none.
     int active_thread_id = -1;
 
     bool first_initialization = true;
 };
-
-ResultCode SetBufferSwap(u32 screen_id, const FrameBufferInfo& info);
-
 } // namespace Service::GSP

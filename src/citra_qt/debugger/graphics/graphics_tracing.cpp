@@ -14,6 +14,8 @@
 #include <boost/range/algorithm/copy.hpp>
 #include "citra_qt/debugger/graphics/graphics_tracing.h"
 #include "common/common_types.h"
+#include "core/core.h"
+#include "core/hw/hw.h"
 #include "core/hw/gpu.h"
 #include "core/hw/lcd.h"
 #include "core/tracer/recorder.h"
@@ -82,9 +84,9 @@ void GraphicsTracingWidget::StartRecording() {
                 nihstro::to_float24(Pica::g_state.vs.uniforms.f[i][comp].ToFloat32());
 
     CiTrace::Recorder::InitialState state;
-    std::copy_n((u32*)&GPU::g_regs, sizeof(GPU::g_regs) / sizeof(u32),
+    std::copy_n((u32*)&Core::System::GetInstance().HardwareManager().Gpu().Regs(), sizeof(HW::GPU::Regs) / sizeof(u32),
                 std::back_inserter(state.gpu_registers));
-    std::copy_n((u32*)&LCD::g_regs, sizeof(LCD::g_regs) / sizeof(u32),
+    std::copy_n((u32*)&Core::System::GetInstance().HardwareManager().Lcd().Regs(), sizeof(HW::LCD::Regs) / sizeof(u32),
                 std::back_inserter(state.lcd_registers));
     std::copy_n((u32*)&Pica::g_state.regs, sizeof(Pica::g_state.regs) / sizeof(u32),
                 std::back_inserter(state.pica_registers));

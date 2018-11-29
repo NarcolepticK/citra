@@ -96,7 +96,7 @@ static std::array<GLfloat, 3 * 2> MakeOrthographicMatrix(const float width, cons
     return matrix;
 }
 
-RendererOpenGL::RendererOpenGL(EmuWindow& window) : RendererBase{window} {}
+RendererOpenGL::RendererOpenGL(Core::System& system, EmuWindow& window) : RendererBase{system, window} {}
 RendererOpenGL::~RendererOpenGL() = default;
 
 /// Swap buffers (render frame)
@@ -107,14 +107,16 @@ void RendererOpenGL::SwapBuffers() {
 
     for (int i : {0, 1, 2}) {
         int fb_id = i == 2 ? 1 : 0;
-        const auto& framebuffer = GPU::g_regs.framebuffer_config[fb_id];
+        const auto& framebuffer = system.HardwareManager().Gpu().Regs().framebuffer_config[fb_id];
 
         // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
         u32 lcd_color_addr =
             (fb_id == 0) ? LCD_REG_INDEX(color_fill_top) : LCD_REG_INDEX(color_fill_bottom);
-        lcd_color_addr = HW::VADDR_LCD + 4 * lcd_color_addr;
-        LCD::Regs::ColorFill color_fill = {0};
-        LCD::Read(color_fill.raw, lcd_color_addr);
+        lcd_color_addr = HW::LCD::Lcd::VADDR_LCD + 4 * lcd_color_addr;
+        HW::LCD::Regs::ColorFill color_fill = {0};
+        system.HardwareManager().Lcd().Read(color_fill.raw, lcd_color_addr);
+
+        system.HardwareManager().Read(color_fill.raw, lcd_color_addr);
 
         if (color_fill.is_enabled) {
             LoadColorToActiveGLTexture(color_fill.color_r, color_fill.color_g, color_fill.color_b,
@@ -174,15 +176,15 @@ void RendererOpenGL::SwapBuffers() {
 
     DrawScreens(render_window.GetFramebufferLayout());
 
-    Core::System::GetInstance().perf_stats.EndSystemFrame();
+    system.perf_stats.EndSystemFrame();
 
     // Swap buffers
     render_window.PollEvents();
     render_window.SwapBuffers();
 
-    Core::System::GetInstance().frame_limiter.DoFrameLimiting(
-        Core::System::GetInstance().CoreTiming().GetGlobalTimeUs());
-    Core::System::GetInstance().perf_stats.BeginSystemFrame();
+    system.frame_limiter.DoFrameLimiting(
+        system.CoreTiming().GetGlobalTimeUs());
+    system.perf_stats.BeginSystemFrame();
 
     prev_state.Apply();
     RefreshRasterizerSetting();
@@ -195,7 +197,7 @@ void RendererOpenGL::SwapBuffers() {
 /**
  * Loads framebuffer from emulated memory into the active OpenGL texture.
  */
-void RendererOpenGL::LoadFBToScreenInfo(const GPU::Regs::FramebufferConfig& framebuffer,
+void RendererOpenGL::LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& framebuffer,
                                         ScreenInfo& screen_info, bool right_eye) {
 
     if (framebuffer.address_right1 == 0 || framebuffer.address_right2 == 0)
@@ -210,7 +212,7 @@ void RendererOpenGL::LoadFBToScreenInfo(const GPU::Regs::FramebufferConfig& fram
               framebuffer.stride * framebuffer.height, framebuffer_addr, (int)framebuffer.width,
               (int)framebuffer.height, (int)framebuffer.format);
 
-    int bpp = GPU::Regs::BytesPerPixel(framebuffer.color_format);
+    int bpp = HW::GPU::Gpu::BytesPerPixel(framebuffer.color_format);
     std::size_t pixel_stride = framebuffer.stride / bpp;
 
     // OpenGL only supports specifying a stride in units of pixels, not bytes, unfortunately
@@ -332,8 +334,8 @@ void RendererOpenGL::InitOpenGLObjects() {
 }
 
 void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
-                                                 const GPU::Regs::FramebufferConfig& framebuffer) {
-    GPU::Regs::PixelFormat format = framebuffer.color_format;
+                                                 const HW::GPU::FramebufferConfig& framebuffer) {
+    HW::GPU::PixelFormat format = framebuffer.color_format;
     GLint internal_format;
 
     texture.format = format;
@@ -341,13 +343,13 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
     texture.height = framebuffer.height;
 
     switch (format) {
-    case GPU::Regs::PixelFormat::RGBA8:
+    case HW::GPU::PixelFormat::RGBA8:
         internal_format = GL_RGBA;
         texture.gl_format = GL_RGBA;
         texture.gl_type = GL_UNSIGNED_INT_8_8_8_8;
         break;
 
-    case GPU::Regs::PixelFormat::RGB8:
+    case HW::GPU::PixelFormat::RGB8:
         // This pixel format uses BGR since GL_UNSIGNED_BYTE specifies byte-order, unlike every
         // specific OpenGL type used in this function using native-endian (that is, little-endian
         // mostly everywhere) for words or half-words.
@@ -357,19 +359,19 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
         texture.gl_type = GL_UNSIGNED_BYTE;
         break;
 
-    case GPU::Regs::PixelFormat::RGB565:
+    case HW::GPU::PixelFormat::RGB565:
         internal_format = GL_RGB;
         texture.gl_format = GL_RGB;
         texture.gl_type = GL_UNSIGNED_SHORT_5_6_5;
         break;
 
-    case GPU::Regs::PixelFormat::RGB5A1:
+    case HW::GPU::PixelFormat::RGB5A1:
         internal_format = GL_RGBA;
         texture.gl_format = GL_RGBA;
         texture.gl_type = GL_UNSIGNED_SHORT_5_5_5_1;
         break;
 
-    case GPU::Regs::PixelFormat::RGBA4:
+    case HW::GPU::PixelFormat::RGBA4:
         internal_format = GL_RGBA;
         texture.gl_format = GL_RGBA;
         texture.gl_type = GL_UNSIGNED_SHORT_4_4_4_4;

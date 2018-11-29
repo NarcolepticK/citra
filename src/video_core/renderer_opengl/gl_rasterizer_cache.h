@@ -179,12 +179,12 @@ struct SurfaceParams {
                                           : PixelFormat::Invalid;
     }
 
-    static PixelFormat PixelFormatFromGPUPixelFormat(GPU::Regs::PixelFormat format) {
+    static PixelFormat PixelFormatFromGPUPixelFormat(HW::GPU::PixelFormat format) {
         switch (format) {
         // RGB565 and RGB5A1 are switched in PixelFormat compared to ColorFormat
-        case GPU::Regs::PixelFormat::RGB565:
+        case HW::GPU::PixelFormat::RGB565:
             return PixelFormat::RGB565;
-        case GPU::Regs::PixelFormat::RGB5A1:
+        case HW::GPU::PixelFormat::RGB5A1:
             return PixelFormat::RGB5A1;
         default:
             return ((unsigned int)format < 5) ? (PixelFormat)format : PixelFormat::Invalid;
@@ -443,7 +443,7 @@ public:
                                                     const MathUtil::Rectangle<s32>& viewport_rect);
 
     /// Get a surface that matches the fill config
-    Surface GetFillSurface(const GPU::Regs::MemoryFillConfig& config);
+    Surface GetFillSurface(const HW::GPU::MemoryFillConfig& config);
 
     /// Get a surface that matches a "texture copy" display transfer config
     SurfaceRect_Tuple GetTexCopySurface(const SurfaceParams& params);

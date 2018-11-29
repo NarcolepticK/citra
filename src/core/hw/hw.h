@@ -5,15 +5,21 @@
 #pragma once
 
 #include "common/common_types.h"
+#include "common/logging/log.h"
+#include "core/hw/aes/key.h"
+#include "core/hw/gpu.h"
+#include "core/hw/lcd.h"
 
-namespace Memory {
-class MemorySystem;
+namespace Core {
+class System;
 }
 
 namespace HW {
 
 /// Beginnings of IO register regions, in the user VA space.
-enum : u32 {
+enum class IORegion : u32 {
+    PADDR_BASE = 0x10100000,
+    VADDR_BASE = 0x1EC0000,
     VADDR_HASH = 0x1EC01000,
     VADDR_CSND = 0x1EC03000,
     VADDR_DSP = 0x1EC40000,
@@ -36,19 +42,34 @@ enum : u32 {
     VADDR_GPU = 0x1EF00000,
 };
 
-template <typename T>
-void Read(T& var, const u32 addr);
+class HardwareManager {
+public:
+    explicit HardwareManager(Core::System& system);
 
-template <typename T>
-void Write(u32 addr, const T data);
+    void Init();
+    void Shutdown();
+    void Update();
 
-/// Update hardware
-void Update();
+    void MapMMIORegions();
 
-/// Initialize hardware
-void Init(Memory::MemorySystem& memory);
+    template <typename T>
+    void Read(T& var, const u32 addr);
 
-/// Shutdown hardware
-void Shutdown();
+    template <typename T>
+    void Write(u32 addr, const T data);
+
+    HW::GPU::Gpu& Gpu();
+    const HW::GPU::Gpu& Gpu() const;
+
+    HW::LCD::Lcd& Lcd();
+    const HW::LCD::Lcd& Lcd() const;
+
+private:
+    Core::System& system;
+
+    std::shared_ptr<HW::GPU::Gpu> gpu;
+    std::shared_ptr<HW::LCD::Lcd> lcd;
+};
+
 
 } // namespace HW

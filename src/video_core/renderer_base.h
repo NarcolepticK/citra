@@ -16,7 +16,7 @@ public:
     /// Used to reference a framebuffer
     enum kFramebuffer { kFramebuffer_VirtualXFB = 0, kFramebuffer_EFB, kFramebuffer_Texture };
 
-    explicit RendererBase(EmuWindow& window);
+    explicit RendererBase(Core::System& system, EmuWindow& window);
     virtual ~RendererBase();
 
     /// Swap buffers (render frame)
@@ -53,6 +53,7 @@ public:
     void RefreshRasterizerSetting();
 
 protected:
+    Core::System& system;
     EmuWindow& render_window; ///< Reference to the render window handle.
     std::unique_ptr<VideoCore::RasterizerInterface> rasterizer;
     f32 m_current_fps = 0.0f; ///< Current framerate, should be set by the renderer

@@ -78,7 +78,7 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         GDBStub::SetCpuStepFlag(false);
     }
 
-    HW::Update();
+    hardware_manager->Update();
     Reschedule();
 
     if (reset_requested.exchange(false)) {
@@ -202,11 +202,13 @@ System::ResultStatus System::Init(EmuWindow& emu_window, u32 system_mode) {
     service_manager = std::make_shared<Service::SM::ServiceManager>(*this);
     archive_manager = std::make_unique<Service::FS::ArchiveManager>(*this);
 
-    HW::Init(*memory);
+    hardware_manager = std::make_unique<HW::HardwareManager>(*this);
+    hardware_manager->Init();
+
     Service::Init(*this);
     GDBStub::Init();
 
-    ResultStatus result = VideoCore::Init(emu_window, *memory);
+    ResultStatus result = VideoCore::Init(*this, emu_window);
     if (result != ResultStatus::Success) {
         return result;
     }
@@ -268,6 +270,14 @@ const Cheats::CheatEngine& System::CheatEngine() const {
     return *cheat_engine;
 }
 
+HW::HardwareManager& System::HardwareManager() {
+    return *hardware_manager;
+}
+
+const HW::HardwareManager& System::HardwareManager() const {
+    return *hardware_manager;
+}
+
 void System::RegisterSoftwareKeyboard(std::shared_ptr<Frontend::SoftwareKeyboard> swkbd) {
     registered_swkbd = std::move(swkbd);
 }
@@ -286,7 +296,7 @@ void System::Shutdown() {
     GDBStub::Shutdown();
     VideoCore::Shutdown();
     kernel.reset();
-    HW::Shutdown();
+    hardware_manager->Shutdown();
     telemetry_session.reset();
 #ifdef ENABLE_SCRIPTING
     rpc_server.reset();

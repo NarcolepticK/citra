@@ -21,238 +21,64 @@
 #include "video_core/debug_utils/debug_utils.h"
 #include "video_core/gpu_debugger.h"
 
+MICROPROFILE_DEFINE(GPU_GSP_DMA, "GPU", "GSP DMA", MP_RGB(100, 0, 255));
+
 // Main graphics debugger object - TODO: Here is probably not the best place for this
 GraphicsDebugger g_debugger;
 
 namespace Service::GSP {
 
-// Beginning address of HW regs
-const u32 REGS_BEGIN = 0x1EB00000;
-
-namespace ErrCodes {
-enum {
-    // TODO(purpasmart): Check if this name fits its actual usage
-    OutofRangeOrMisalignedAddress = 513,
-    FirstInitialization = 519,
-};
-}
-
-constexpr ResultCode RESULT_FIRST_INITIALIZATION(ErrCodes::FirstInitialization, ErrorModule::GX,
-                                                 ErrorSummary::Success, ErrorLevel::Success);
-constexpr ResultCode ERR_REGS_OUTOFRANGE_OR_MISALIGNED(ErrCodes::OutofRangeOrMisalignedAddress,
-                                                       ErrorModule::GX,
-                                                       ErrorSummary::InvalidArgument,
-                                                       ErrorLevel::Usage); // 0xE0E02A01
-constexpr ResultCode ERR_REGS_MISALIGNED(ErrorDescription::MisalignedSize, ErrorModule::GX,
-                                         ErrorSummary::InvalidArgument,
-                                         ErrorLevel::Usage); // 0xE0E02BF2
-constexpr ResultCode ERR_REGS_INVALID_SIZE(ErrorDescription::InvalidSize, ErrorModule::GX,
-                                           ErrorSummary::InvalidArgument,
-                                           ErrorLevel::Usage); // 0xE0E02BEC
-
-/// Maximum number of threads that can be registered at the same time in the GSP module.
-constexpr u32 MaxGSPThreads = 4;
-
-/// Thread ids currently in use by the sessions connected to the GSPGPU service.
-static std::array<bool, MaxGSPThreads> used_thread_ids = {false, false, false, false};
-
-static PAddr VirtualToPhysicalAddress(VAddr addr) {
-    if (addr == 0) {
-        return 0;
-    }
-
-    // Note: the region end check is inclusive because the game can pass in an address that
-    // represents an open right boundary
-    if (addr >= Memory::VRAM_VADDR && addr <= Memory::VRAM_VADDR_END) {
-        return addr - Memory::VRAM_VADDR + Memory::VRAM_PADDR;
-    }
-    if (addr >= Memory::LINEAR_HEAP_VADDR && addr <= Memory::LINEAR_HEAP_VADDR_END) {
-        return addr - Memory::LINEAR_HEAP_VADDR + Memory::FCRAM_PADDR;
-    }
-    if (addr >= Memory::NEW_LINEAR_HEAP_VADDR && addr <= Memory::NEW_LINEAR_HEAP_VADDR_END) {
-        return addr - Memory::NEW_LINEAR_HEAP_VADDR + Memory::FCRAM_PADDR;
-    }
-
-    LOG_ERROR(HW_Memory, "Unknown virtual address @ 0x{:08X}", addr);
-    // To help with debugging, set bit on address so that it's obviously invalid.
-    // TODO: find the correct way to handle this error
-    return addr | 0x80000000;
-}
-
-static u32 GetUnusedThreadId() {
-    for (u32 id = 0; id < MaxGSPThreads; ++id) {
-        if (!used_thread_ids[id])
-            return id;
-    }
-    ASSERT_MSG(false, "All GSP threads are in use");
-}
-
-/// Gets a pointer to a thread command buffer in GSP shared memory
-static inline u8* GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory,
-                                   u32 thread_id) {
-    return shared_memory->GetPointer(0x800 + (thread_id * sizeof(CommandBuffer)));
-}
-
 FrameBufferUpdate* GSP_GPU::GetFrameBufferInfo(u32 thread_id, u32 screen_index) {
     DEBUG_ASSERT_MSG(screen_index < 2, "Invalid screen index");
 
     // For each thread there are two FrameBufferUpdate fields
-    u32 offset = 0x200 + (2 * thread_id + screen_index) * sizeof(FrameBufferUpdate);
+    const u32 offset = 0x200 + (2 * thread_id + screen_index) * sizeof(FrameBufferUpdate);
     u8* ptr = shared_memory->GetPointer(offset);
     return reinterpret_cast<FrameBufferUpdate*>(ptr);
 }
 
-/// Gets a pointer to the interrupt relay queue for a given thread index
-static inline InterruptRelayQueue* GetInterruptRelayQueue(
-    Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id) {
-    u8* ptr = shared_memory->GetPointer(sizeof(InterruptRelayQueue) * thread_id);
-    return reinterpret_cast<InterruptRelayQueue*>(ptr);
+void GSP_GPU::ClientConnected(Kernel::SharedPtr<Kernel::ServerSession> server_session) {
+    SessionRequestHandler::ClientConnected(server_session);
+    SessionData* session_data = GetSessionData(server_session);
+    session_data->thread_id = GetUnusedThreadId();
+    used_thread_ids[session_data->thread_id] = true;
 }
 
 void GSP_GPU::ClientDisconnected(Kernel::SharedPtr<Kernel::ServerSession> server_session) {
     SessionData* session_data = GetSessionData(server_session);
     if (active_thread_id == session_data->thread_id)
         ReleaseRight(session_data);
+    used_thread_ids[session_data->thread_id] = false;
     SessionRequestHandler::ClientDisconnected(server_session);
-}
-
-/**
- * Writes a single GSP GPU hardware registers with a single u32 value
- * (For internal use.)
- *
- * @param base_address The address of the register in question
- * @param data Data to be written
- */
-static void WriteSingleHWReg(u32 base_address, u32 data) {
-    DEBUG_ASSERT_MSG((base_address & 3) == 0 && base_address < 0x420000,
-                     "Write address out of range or misaligned");
-    HW::Write<u32>(base_address + REGS_BEGIN, data);
-}
-
-/**
- * Writes sequential GSP GPU hardware registers using an array of source data
- *
- * @param base_address The address of the first register in the sequence
- * @param size_in_bytes The number of registers to update (size of data)
- * @param data A vector containing the source data
- * @return RESULT_SUCCESS if the parameters are valid, error code otherwise
- */
-static ResultCode WriteHWRegs(u32 base_address, u32 size_in_bytes, const std::vector<u8>& data) {
-    // This magic number is verified to be done by the gsp module
-    const u32 max_size_in_bytes = 0x80;
-
-    if (base_address & 3 || base_address >= 0x420000) {
-        LOG_ERROR(Service_GSP,
-                  "Write address was out of range or misaligned! (address=0x{:08x}, size=0x{:08x})",
-                  base_address, size_in_bytes);
-        return ERR_REGS_OUTOFRANGE_OR_MISALIGNED;
-    } else if (size_in_bytes <= max_size_in_bytes) {
-        if (size_in_bytes & 3) {
-            LOG_ERROR(Service_GSP, "Misaligned size 0x{:08x}", size_in_bytes);
-            return ERR_REGS_MISALIGNED;
-        } else {
-            std::size_t offset = 0;
-            while (size_in_bytes > 0) {
-                u32 value;
-                std::memcpy(&value, &data[offset], sizeof(u32));
-                WriteSingleHWReg(base_address, value);
-
-                size_in_bytes -= 4;
-                offset += 4;
-                base_address += 4;
-            }
-            return RESULT_SUCCESS;
-        }
-
-    } else {
-        LOG_ERROR(Service_GSP, "Out of range size 0x{:08x}", size_in_bytes);
-        return ERR_REGS_INVALID_SIZE;
-    }
-}
-
-/**
- * Updates sequential GSP GPU hardware registers using parallel arrays of source data and masks.
- * For each register, the value is updated only where the mask is high
- *
- * @param base_address  The address of the first register in the sequence
- * @param size_in_bytes The number of registers to update (size of data)
- * @param data    A vector containing the data to write
- * @param masks   A vector containing the masks
- * @return RESULT_SUCCESS if the parameters are valid, error code otherwise
- */
-static ResultCode WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes,
-                                      const std::vector<u8>& data, const std::vector<u8>& masks) {
-    // This magic number is verified to be done by the gsp module
-    const u32 max_size_in_bytes = 0x80;
-
-    if (base_address & 3 || base_address >= 0x420000) {
-        LOG_ERROR(Service_GSP,
-                  "Write address was out of range or misaligned! (address=0x{:08x}, size=0x{:08x})",
-                  base_address, size_in_bytes);
-        return ERR_REGS_OUTOFRANGE_OR_MISALIGNED;
-    } else if (size_in_bytes <= max_size_in_bytes) {
-        if (size_in_bytes & 3) {
-            LOG_ERROR(Service_GSP, "Misaligned size 0x{:08x}", size_in_bytes);
-            return ERR_REGS_MISALIGNED;
-        } else {
-            std::size_t offset = 0;
-            while (size_in_bytes > 0) {
-                const u32 reg_address = base_address + REGS_BEGIN;
-
-                u32 reg_value;
-                HW::Read<u32>(reg_value, reg_address);
-
-                u32 value, mask;
-                std::memcpy(&value, &data[offset], sizeof(u32));
-                std::memcpy(&mask, &masks[offset], sizeof(u32));
-
-                // Update the current value of the register only for set mask bits
-                reg_value = (reg_value & ~mask) | (value & mask);
-
-                WriteSingleHWReg(base_address, reg_value);
-
-                size_in_bytes -= 4;
-                offset += 4;
-                base_address += 4;
-            }
-            return RESULT_SUCCESS;
-        }
-
-    } else {
-        LOG_ERROR(Service_GSP, "Out of range size 0x{:08x}", size_in_bytes);
-        return ERR_REGS_INVALID_SIZE;
-    }
 }
 
 void GSP_GPU::WriteHWRegs(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x1, 2, 2);
-    u32 reg_addr = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
-    std::vector<u8> src_data = rp.PopStaticBuffer();
+    const u32 reg_addr = rp.Pop<u32>();
+    const u32 size = rp.Pop<u32>();
+    const std::vector<u8> src_data = rp.PopStaticBuffer();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(GSP::WriteHWRegs(reg_addr, size, src_data));
+    rb.Push(WriteHWRegs(reg_addr, size, src_data));
 }
 
 void GSP_GPU::WriteHWRegsWithMask(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x2, 2, 4);
-    u32 reg_addr = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
+    const u32 reg_addr = rp.Pop<u32>();
+    const u32 size = rp.Pop<u32>();
 
-    std::vector<u8> src_data = rp.PopStaticBuffer();
-    std::vector<u8> mask_data = rp.PopStaticBuffer();
+    const std::vector<u8> src_data = rp.PopStaticBuffer();
+    const std::vector<u8> mask_data = rp.PopStaticBuffer();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(GSP::WriteHWRegsWithMask(reg_addr, size, src_data, mask_data));
+    rb.Push(WriteHWRegsWithMask(reg_addr, size, src_data, mask_data));
 }
 
 void GSP_GPU::ReadHWRegs(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x4, 2, 0);
-    u32 reg_addr = rp.Pop<u32>();
-    u32 input_size = rp.Pop<u32>();
-
-    static constexpr u32 MaxReadSize = 0x80;
-    u32 size = std::min(input_size, MaxReadSize);
+    const u32 reg_addr = rp.Pop<u32>();
+    const u32 input_size = rp.Pop<u32>();
+    const u32 size = std::min(input_size, MaxReadWriteSize);
 
     if ((reg_addr % 4) != 0 || reg_addr >= 0x420000) {
         IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
@@ -271,7 +97,7 @@ void GSP_GPU::ReadHWRegs(Kernel::HLERequestContext& ctx) {
 
     std::vector<u8> buffer(size);
     for (u32 offset = 0; offset < size; ++offset) {
-        HW::Read<u8>(buffer[offset], REGS_BEGIN + reg_addr + offset);
+        system.HardwareManager().Read(buffer[offset], REGS_BEGIN + reg_addr + offset);
     }
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
@@ -279,88 +105,87 @@ void GSP_GPU::ReadHWRegs(Kernel::HLERequestContext& ctx) {
     rb.PushStaticBuffer(std::move(buffer), 0);
 }
 
-ResultCode SetBufferSwap(u32 screen_id, const FrameBufferInfo& info) {
-    u32 base_address = 0x400000;
-    PAddr phys_address_left = VirtualToPhysicalAddress(info.address_left);
-    PAddr phys_address_right = VirtualToPhysicalAddress(info.address_right);
-    if (info.active_fb == 0) {
-        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
-                                                framebuffer_config[screen_id].address_left1)),
-                         phys_address_left);
-        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
-                                                framebuffer_config[screen_id].address_right1)),
-                         phys_address_right);
-    } else {
-        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
-                                                framebuffer_config[screen_id].address_left2)),
-                         phys_address_left);
-        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
-                                                framebuffer_config[screen_id].address_right2)),
-                         phys_address_right);
-    }
-    WriteSingleHWReg(base_address +
-                         4 * static_cast<u32>(GPU_REG_INDEX(framebuffer_config[screen_id].stride)),
-                     info.stride);
-    WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
-                                            framebuffer_config[screen_id].color_format)),
-                     info.format);
-    WriteSingleHWReg(
-        base_address + 4 * static_cast<u32>(GPU_REG_INDEX(framebuffer_config[screen_id].active_fb)),
-        info.shown_fb);
-
-    if (Pica::g_debug_context)
-        Pica::g_debug_context->OnEvent(Pica::DebugContext::Event::BufferSwapped, nullptr);
-
-    if (screen_id == 0) {
-        MicroProfileFlip();
-        Core::System::GetInstance().perf_stats.EndGameFrame();
-    }
-
-    return RESULT_SUCCESS;
-}
-
 void GSP_GPU::SetBufferSwap(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x5, 8, 0);
-    u32 screen_id = rp.Pop<u32>();
-    auto fb_info = rp.PopRaw<FrameBufferInfo>();
+    const u32 screen_id = rp.Pop<u32>();
+    const auto fb_info = rp.PopRaw<FrameBufferInfo>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(GSP::SetBufferSwap(screen_id, fb_info));
+    rb.Push(SetBufferSwap(screen_id, fb_info));
 }
 
 void GSP_GPU::FlushDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x8, 2, 2);
-    u32 address = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
-    auto process = rp.PopObject<Kernel::Process>();
+    const u32 address = rp.Pop<u32>();
+    const u32 size = rp.Pop<u32>();
+    const auto process = rp.PopObject<Kernel::Process>();
 
     // TODO(purpasmart96): Verify return header on HW
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
 }
 
 void GSP_GPU::InvalidateDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x9, 2, 2);
-    u32 address = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
-    auto process = rp.PopObject<Kernel::Process>();
+    const u32 address = rp.Pop<u32>();
+    const u32 size = rp.Pop<u32>();
+    const auto process = rp.PopObject<Kernel::Process>();
 
     // TODO(purpasmart96): Verify return header on HW
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
 
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
               size, process->process_id);
+}
+
+void GSP_GPU::SetLcdForceBlack(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0xB, 1, 0);
+    const bool enable_black = rp.Pop<bool>();
+    HW::LCD::Regs::ColorFill data = {0};
+
+    // Since data is already zeroed, there is no need to explicitly set
+    // the color to black (all zero).
+    data.is_enabled.Assign(enable_black);
+
+    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_top), data.raw);
+    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_bottom), data.raw);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(RESULT_SUCCESS);
+}
+
+void GSP_GPU::TriggerCmdReqQueue(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0xC, 0, 0);
+
+    // Iterate through each thread's command queue...
+    for (unsigned thread_id = 0; thread_id < 0x4; ++thread_id) {
+        CommandBuffer* command_buffer = (CommandBuffer*)GetCommandBuffer(shared_memory, thread_id);
+
+        // Iterate through each command...
+        for (unsigned i = 0; i < command_buffer->number_commands; ++i) {
+            g_debugger.GXCommandProcessed((u8*)&command_buffer->commands[i]);
+
+            // Decode and execute command
+            ExecuteCommand(command_buffer->commands[i], thread_id);
+
+            // Indicates that command has completed
+            command_buffer->number_commands.Assign(command_buffer->number_commands - 1);
+        }
+    }
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(RESULT_SUCCESS);
 }
 
 void GSP_GPU::SetAxiConfigQoSMode(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x10, 1, 0);
-    u32 mode = rp.Pop<u32>();
+    const u32 mode = rp.Pop<u32>();
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
@@ -370,9 +195,9 @@ void GSP_GPU::SetAxiConfigQoSMode(Kernel::HLERequestContext& ctx) {
 
 void GSP_GPU::RegisterInterruptRelayQueue(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x13, 1, 2);
-    u32 flags = rp.Pop<u32>();
-
+    const u32 flags = rp.Pop<u32>();
     auto interrupt_event = rp.PopObject<Kernel::Event>();
+
     // TODO(mailwl): return right error code instead assert
     ASSERT_MSG((interrupt_event != nullptr), "handle is not valid!");
 
@@ -383,7 +208,6 @@ void GSP_GPU::RegisterInterruptRelayQueue(Kernel::HLERequestContext& ctx) {
     session_data->registered = true;
 
     IPC::RequestBuilder rb = rp.MakeBuilder(2, 2);
-
     if (first_initialization) {
         // This specific code is required for a successful initialization, rather than 0
         first_initialization = false;
@@ -411,16 +235,148 @@ void GSP_GPU::UnregisterInterruptRelayQueue(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_GSP, "called");
 }
 
+void GSP_GPU::AcquireRight(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x16, 1, 2);
+    const u32 flag = rp.Pop<u32>();
+    const auto process = rp.PopObject<Kernel::Process>();
+    const SessionData* session_data = GetSessionData(ctx.Session());
+
+    LOG_WARNING(Service_GSP, "called flag={:08X} process={} thread_id={}", flag,
+                process->process_id, session_data->thread_id);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+
+    if (active_thread_id == session_data->thread_id) {
+        rb.Push(ResultCode(ErrorDescription::AlreadyDone, ErrorModule::GX, ErrorSummary::Success,
+                           ErrorLevel::Success));
+        return;
+    }
+
+    // TODO(Subv): This case should put the caller thread to sleep until the right is released.
+    ASSERT_MSG(active_thread_id == -1, "GPU right has already been acquired");
+
+    active_thread_id = session_data->thread_id;
+    rb.Push(RESULT_SUCCESS);
+}
+
+void GSP_GPU::ReleaseRight(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x17, 0, 0);
+    SessionData* session_data = GetSessionData(ctx.Session());
+    ReleaseRight(session_data);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(RESULT_SUCCESS);
+
+    LOG_WARNING(Service_GSP, "called");
+}
+
+void GSP_GPU::ImportDisplayCaptureInfo(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x18, 0, 0);
+
+    // TODO(Subv): We're always returning the framebuffer structures for thread_id = 0,
+    // because we only support a single running application at a time.
+    // This should always return the framebuffer data that is currently displayed on the screen.
+    u32 thread_id = 0;
+
+    FrameBufferUpdate* top_screen = GetFrameBufferInfo(thread_id, 0);
+    FrameBufferUpdate* bottom_screen = GetFrameBufferInfo(thread_id, 1);
+
+    struct CaptureInfoEntry {
+        u32_le address_left;
+        u32_le address_right;
+        u32_le format;
+        u32_le stride;
+    };
+
+    CaptureInfoEntry top_entry, bottom_entry;
+    // Top Screen
+    top_entry.address_left = top_screen->framebuffer_info[top_screen->index].address_left;
+    top_entry.address_right = top_screen->framebuffer_info[top_screen->index].address_right;
+    top_entry.format = top_screen->framebuffer_info[top_screen->index].format;
+    top_entry.stride = top_screen->framebuffer_info[top_screen->index].stride;
+    // Bottom Screen
+    bottom_entry.address_left = bottom_screen->framebuffer_info[bottom_screen->index].address_left;
+    bottom_entry.address_right =
+        bottom_screen->framebuffer_info[bottom_screen->index].address_right;
+    bottom_entry.format = bottom_screen->framebuffer_info[bottom_screen->index].format;
+    bottom_entry.stride = bottom_screen->framebuffer_info[bottom_screen->index].stride;
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(9, 0);
+    rb.Push(RESULT_SUCCESS);
+    rb.PushRaw(top_entry);
+    rb.PushRaw(bottom_entry);
+
+    LOG_WARNING(Service_GSP, "called");
+}
+
+void GSP_GPU::SetLedForceOff(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x1C, 1, 0);
+
+    u8 state = rp.Pop<u8>();
+
+    system.Kernel().GetSharedPageHandler().Set3DLed(state);
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(RESULT_SUCCESS);
+    LOG_DEBUG(Service_GSP, "(STUBBED) called");
+}
+
+void GSP_GPU::StoreDataCache(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx, 0x1F, 2, 2);
+
+    const u32 address = rp.Pop<u32>();
+    const u32 size = rp.Pop<u32>();
+    const auto process = rp.PopObject<Kernel::Process>();
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+    rb.Push(RESULT_SUCCESS);
+
+    LOG_TRACE(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
+              size, process->process_id);
+}
+
+SessionData* GSP_GPU::FindRegisteredThreadData(u32 thread_id) {
+    for (auto& session_info : connected_sessions) {
+        SessionData* data = static_cast<SessionData*>(session_info.data.get());
+        if (!data->registered)
+            continue;
+        if (data->thread_id == thread_id)
+            return data;
+    }
+    return nullptr;
+}
+
+u32 GSP_GPU::GetUnusedThreadId() {
+    for (u32 id = 0; id < MaxGSPThreads; ++id) {
+        if (!used_thread_ids[id])
+            return id;
+    }
+    ASSERT_MSG(false, "All GSP threads are in use");
+}
+
+/// Gets a pointer to a thread command buffer in GSP shared memory
+inline u8* GSP_GPU::GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id) {
+    return shared_memory->GetPointer(0x800 + (thread_id * sizeof(CommandBuffer)));
+}
+
+/// Gets a pointer to the interrupt relay queue for a given thread index
+inline InterruptRelayQueue* GSP_GPU::GetInterruptRelayQueue(
+    Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id) {
+    u8* ptr = shared_memory->GetPointer(sizeof(InterruptRelayQueue) * thread_id);
+    return reinterpret_cast<InterruptRelayQueue*>(ptr);
+}
+
 void GSP_GPU::SignalInterruptForThread(InterruptId interrupt_id, u32 thread_id) {
-    SessionData* session_data = FindRegisteredThreadData(thread_id);
+    const SessionData* session_data = FindRegisteredThreadData(thread_id);
     if (session_data == nullptr)
         return;
 
-    auto interrupt_event = session_data->interrupt_event;
+    const auto interrupt_event = session_data->interrupt_event;
     if (interrupt_event == nullptr) {
         LOG_WARNING(Service_GSP, "cannot synchronize until GSP event has been created!");
         return;
     }
+
     InterruptRelayQueue* interrupt_relay_queue = GetInterruptRelayQueue(shared_memory, thread_id);
     u8 next = interrupt_relay_queue->index;
     next += interrupt_relay_queue->number_interrupts;
@@ -436,12 +392,12 @@ void GSP_GPU::SignalInterruptForThread(InterruptId interrupt_id, u32 thread_id) 
     //               executing any GSP commands, only waiting on the event.
     // TODO(Subv): The real GSP module triggers PDC0 after updating both the top and bottom
     // screen, it is currently unknown what PDC1 does.
-    int screen_id =
+    const int screen_id =
         (interrupt_id == InterruptId::PDC0) ? 0 : (interrupt_id == InterruptId::PDC1) ? 1 : -1;
     if (screen_id != -1) {
         FrameBufferUpdate* info = GetFrameBufferInfo(thread_id, screen_id);
         if (info->is_dirty) {
-            GSP::SetBufferSwap(screen_id, info->framebuffer_info[info->index]);
+            SetBufferSwap(screen_id, info->framebuffer_info[info->index]);
             info->is_dirty.Assign(false);
         }
     }
@@ -477,15 +433,165 @@ void GSP_GPU::SignalInterrupt(InterruptId interrupt_id) {
     SignalInterruptForThread(interrupt_id, active_thread_id);
 }
 
-MICROPROFILE_DEFINE(GPU_GSP_DMA, "GPU", "GSP DMA", MP_RGB(100, 0, 255));
+void GSP_GPU::ReleaseRight(SessionData* session_data) {
+    ASSERT_MSG(active_thread_id == session_data->thread_id,
+               "Wrong thread tried to release GPU right");
+    active_thread_id = -1;
+}
 
-/// Executes the next GSP command
-static void ExecuteCommand(const Command& command, u32 thread_id) {
-    // Utility function to convert register ID to address
-    static auto WriteGPURegister = [](u32 id, u32 data) {
-        GPU::Write<u32>(0x1EF00000 + 4 * id, data);
+PAddr GSP_GPU::VirtualToPhysicalAddress(VAddr addr) {
+    if (addr == 0) {
+        return 0;
+    }
+
+    // Note: the region end check is inclusive because the game can pass in an address that
+    // represents an open right boundary
+    if (addr >= Memory::VRAM_VADDR && addr <= Memory::VRAM_VADDR_END) {
+        return addr - Memory::VRAM_VADDR + Memory::VRAM_PADDR;
+    }
+    if (addr >= Memory::LINEAR_HEAP_VADDR && addr <= Memory::LINEAR_HEAP_VADDR_END) {
+        return addr - Memory::LINEAR_HEAP_VADDR + Memory::FCRAM_PADDR;
+    }
+    if (addr >= Memory::NEW_LINEAR_HEAP_VADDR && addr <= Memory::NEW_LINEAR_HEAP_VADDR_END) {
+        return addr - Memory::NEW_LINEAR_HEAP_VADDR + Memory::FCRAM_PADDR;
+    }
+
+    LOG_ERROR(HW_Memory, "Unknown virtual address @ 0x{:08X}", addr);
+    // To help with debugging, set bit on address so that it's obviously invalid.
+    // TODO: find the correct way to handle this error
+    return addr | 0x80000000;
+}
+
+void GSP_GPU::WriteGPURegister(u32 id, u32 data) {
+        system.HardwareManager().Gpu().Write32(0x1EF00000 + 4 * id, data);
     };
 
+/**
+ * Writes a single GSP GPU hardware registers with a single u32 value
+ * (For internal use.)
+ *
+ * @param base_address The address of the register in question
+ * @param data Data to be written
+ */
+void GSP_GPU::WriteSingleHWReg(u32 base_address, u32 data) {
+    DEBUG_ASSERT_MSG((base_address & 3) == 0 && base_address < 0x420000,
+                     "Write address out of range or misaligned");
+    system.HardwareManager().Write(base_address + REGS_BEGIN, data);
+}
+
+ResultCode GSP_GPU::WriteHWRegs(u32 base_address, u32 size_in_bytes, const std::vector<u8>& data) {
+    if (base_address & 3 || base_address >= 0x420000) {
+        LOG_ERROR(Service_GSP,
+                  "Write address was out of range or misaligned! (address=0x{:08x}, size=0x{:08x})",
+                  base_address, size_in_bytes);
+        return ERR_REGS_OUTOFRANGE_OR_MISALIGNED;
+    } else if (size_in_bytes <= MaxReadWriteSize) {
+        if (size_in_bytes & 3) {
+            LOG_ERROR(Service_GSP, "Misaligned size 0x{:08x}", size_in_bytes);
+            return ERR_REGS_MISALIGNED;
+        } else {
+            std::size_t offset = 0;
+            while (size_in_bytes > 0) {
+                u32 value;
+                std::memcpy(&value, &data[offset], sizeof(u32));
+                WriteSingleHWReg(base_address, value);
+
+                size_in_bytes -= 4;
+                offset += 4;
+                base_address += 4;
+            }
+            return RESULT_SUCCESS;
+        }
+
+    } else {
+        LOG_ERROR(Service_GSP, "Out of range size 0x{:08x}", size_in_bytes);
+        return ERR_REGS_INVALID_SIZE;
+    }
+}
+
+ResultCode GSP_GPU::WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes,
+                                const std::vector<u8>& data, const std::vector<u8>& masks) {
+    if (base_address & 3 || base_address >= 0x420000) {
+        LOG_ERROR(Service_GSP,
+                  "Write address was out of range or misaligned! (address=0x{:08x}, size=0x{:08x})",
+                  base_address, size_in_bytes);
+        return ERR_REGS_OUTOFRANGE_OR_MISALIGNED;
+    } else if (size_in_bytes <= MaxReadWriteSize) {
+        if (size_in_bytes & 3) {
+            LOG_ERROR(Service_GSP, "Misaligned size 0x{:08x}", size_in_bytes);
+            return ERR_REGS_MISALIGNED;
+        } else {
+            std::size_t offset = 0;
+            while (size_in_bytes > 0) {
+                const u32 reg_address = base_address + REGS_BEGIN;
+
+                u32 reg_value;
+                system.HardwareManager().Read(reg_value, reg_address);
+
+                u32 value, mask;
+                std::memcpy(&value, &data[offset], sizeof(u32));
+                std::memcpy(&mask, &masks[offset], sizeof(u32));
+
+                // Update the current value of the register only for set mask bits
+                reg_value = (reg_value & ~mask) | (value & mask);
+
+                WriteSingleHWReg(base_address, reg_value);
+
+                size_in_bytes -= 4;
+                offset += 4;
+                base_address += 4;
+            }
+            return RESULT_SUCCESS;
+        }
+    } else {
+        LOG_ERROR(Service_GSP, "Out of range size 0x{:08x}", size_in_bytes);
+        return ERR_REGS_INVALID_SIZE;
+    }
+}
+
+ResultCode GSP_GPU::SetBufferSwap(u32 screen_id, const FrameBufferInfo& info) {
+    const u32 base_address = 0x400000;
+    const PAddr phys_address_left = VirtualToPhysicalAddress(info.address_left);
+    const PAddr phys_address_right = VirtualToPhysicalAddress(info.address_right);
+
+    if (info.active_fb == 0) {
+        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
+                                                framebuffer_config[screen_id].address_left1)),
+                         phys_address_left);
+        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
+                                                framebuffer_config[screen_id].address_right1)),
+                         phys_address_right);
+    } else {
+        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
+                                                framebuffer_config[screen_id].address_left2)),
+                         phys_address_left);
+        WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
+                                                framebuffer_config[screen_id].address_right2)),
+                         phys_address_right);
+    }
+
+    WriteSingleHWReg(base_address +
+                         4 * static_cast<u32>(GPU_REG_INDEX(framebuffer_config[screen_id].stride)),
+                     info.stride);
+    WriteSingleHWReg(base_address + 4 * static_cast<u32>(GPU_REG_INDEX(
+                                            framebuffer_config[screen_id].color_format)),
+                     info.format);
+    WriteSingleHWReg(
+        base_address + 4 * static_cast<u32>(GPU_REG_INDEX(framebuffer_config[screen_id].active_fb)),
+        info.shown_fb);
+
+    if (Pica::g_debug_context)
+        Pica::g_debug_context->OnEvent(Pica::DebugContext::Event::BufferSwapped, nullptr);
+
+    if (screen_id == 0) {
+        MicroProfileFlip();
+        system.perf_stats.EndGameFrame();
+    }
+
+    return RESULT_SUCCESS;
+}
+
+void GSP_GPU::ExecuteCommand(const Command& command, u32 thread_id) {
     switch (command.id) {
 
     // GX request DMA - typically used for copying memory from GSP heap to VRAM
@@ -511,7 +617,7 @@ static void ExecuteCommand(const Command& command, u32 thread_id) {
     }
     // TODO: This will need some rework in the future. (why?)
     case CommandId::SUBMIT_GPU_CMDLIST: {
-        auto& params = command.submit_gpu_cmdlist;
+        const auto& params = command.submit_gpu_cmdlist;
 
         if (params.do_flush) {
             // This flag flushes the command list (params.address, params.size) from the cache.
@@ -536,7 +642,7 @@ static void ExecuteCommand(const Command& command, u32 thread_id) {
     // It's assumed that the two "blocks" behave equivalently.
     // Presumably this is done simply to allow two memory fills to run in parallel.
     case CommandId::SET_MEMORY_FILL: {
-        auto& params = command.memory_fill;
+        const auto& params = command.memory_fill;
 
         if (params.start1 != 0) {
             WriteGPURegister(static_cast<u32>(GPU_REG_INDEX(memory_fill_config[0].address_start)),
@@ -563,7 +669,7 @@ static void ExecuteCommand(const Command& command, u32 thread_id) {
     }
 
     case CommandId::SET_DISPLAY_TRANSFER: {
-        auto& params = command.display_transfer;
+        const auto& params = command.display_transfer;
         WriteGPURegister(static_cast<u32>(GPU_REG_INDEX(display_transfer_config.input_address)),
                          VirtualToPhysicalAddress(params.in_buffer_address) >> 3);
         WriteGPURegister(static_cast<u32>(GPU_REG_INDEX(display_transfer_config.output_address)),
@@ -579,7 +685,7 @@ static void ExecuteCommand(const Command& command, u32 thread_id) {
     }
 
     case CommandId::SET_TEXTURE_COPY: {
-        auto& params = command.texture_copy;
+        const auto& params = command.texture_copy;
         WriteGPURegister((u32)GPU_REG_INDEX(display_transfer_config.input_address),
                          VirtualToPhysicalAddress(params.in_buffer_address) >> 3);
         WriteGPURegister((u32)GPU_REG_INDEX(display_transfer_config.output_address),
@@ -611,168 +717,6 @@ static void ExecuteCommand(const Command& command, u32 thread_id) {
     if (Pica::g_debug_context)
         Pica::g_debug_context->OnEvent(Pica::DebugContext::Event::GSPCommandProcessed,
                                        (void*)&command);
-}
-
-void GSP_GPU::SetLcdForceBlack(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0xB, 1, 0);
-
-    bool enable_black = rp.Pop<bool>();
-    LCD::Regs::ColorFill data = {0};
-
-    // Since data is already zeroed, there is no need to explicitly set
-    // the color to black (all zero).
-    data.is_enabled.Assign(enable_black);
-
-    LCD::Write(HW::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_top), data.raw);    // Top LCD
-    LCD::Write(HW::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_bottom), data.raw); // Bottom LCD
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(RESULT_SUCCESS);
-}
-
-void GSP_GPU::TriggerCmdReqQueue(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0xC, 0, 0);
-
-    // Iterate through each thread's command queue...
-    for (unsigned thread_id = 0; thread_id < 0x4; ++thread_id) {
-        CommandBuffer* command_buffer = (CommandBuffer*)GetCommandBuffer(shared_memory, thread_id);
-
-        // Iterate through each command...
-        for (unsigned i = 0; i < command_buffer->number_commands; ++i) {
-            g_debugger.GXCommandProcessed((u8*)&command_buffer->commands[i]);
-
-            // Decode and execute command
-            ExecuteCommand(command_buffer->commands[i], thread_id);
-
-            // Indicates that command has completed
-            command_buffer->number_commands.Assign(command_buffer->number_commands - 1);
-        }
-    }
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(RESULT_SUCCESS);
-}
-
-void GSP_GPU::ImportDisplayCaptureInfo(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x18, 0, 0);
-
-    // TODO(Subv): We're always returning the framebuffer structures for thread_id = 0,
-    // because we only support a single running application at a time.
-    // This should always return the framebuffer data that is currently displayed on the screen.
-
-    u32 thread_id = 0;
-
-    FrameBufferUpdate* top_screen = GetFrameBufferInfo(thread_id, 0);
-    FrameBufferUpdate* bottom_screen = GetFrameBufferInfo(thread_id, 1);
-
-    struct CaptureInfoEntry {
-        u32_le address_left;
-        u32_le address_right;
-        u32_le format;
-        u32_le stride;
-    };
-
-    CaptureInfoEntry top_entry, bottom_entry;
-    // Top Screen
-    top_entry.address_left = top_screen->framebuffer_info[top_screen->index].address_left;
-    top_entry.address_right = top_screen->framebuffer_info[top_screen->index].address_right;
-    top_entry.format = top_screen->framebuffer_info[top_screen->index].format;
-    top_entry.stride = top_screen->framebuffer_info[top_screen->index].stride;
-    // Bottom Screen
-    bottom_entry.address_left = bottom_screen->framebuffer_info[bottom_screen->index].address_left;
-    bottom_entry.address_right =
-        bottom_screen->framebuffer_info[bottom_screen->index].address_right;
-    bottom_entry.format = bottom_screen->framebuffer_info[bottom_screen->index].format;
-    bottom_entry.stride = bottom_screen->framebuffer_info[bottom_screen->index].stride;
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(9, 0);
-    rb.Push(RESULT_SUCCESS);
-    rb.PushRaw(top_entry);
-    rb.PushRaw(bottom_entry);
-
-    LOG_WARNING(Service_GSP, "called");
-}
-
-void GSP_GPU::AcquireRight(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x16, 1, 2);
-
-    u32 flag = rp.Pop<u32>();
-    auto process = rp.PopObject<Kernel::Process>();
-
-    SessionData* session_data = GetSessionData(ctx.Session());
-
-    LOG_WARNING(Service_GSP, "called flag={:08X} process={} thread_id={}", flag,
-                process->process_id, session_data->thread_id);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-
-    if (active_thread_id == session_data->thread_id) {
-        rb.Push(ResultCode(ErrorDescription::AlreadyDone, ErrorModule::GX, ErrorSummary::Success,
-                           ErrorLevel::Success));
-        return;
-    }
-
-    // TODO(Subv): This case should put the caller thread to sleep until the right is released.
-    ASSERT_MSG(active_thread_id == -1, "GPU right has already been acquired");
-
-    active_thread_id = session_data->thread_id;
-
-    rb.Push(RESULT_SUCCESS);
-}
-
-void GSP_GPU::ReleaseRight(SessionData* session_data) {
-    ASSERT_MSG(active_thread_id == session_data->thread_id,
-               "Wrong thread tried to release GPU right");
-    active_thread_id = -1;
-}
-
-void GSP_GPU::ReleaseRight(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x17, 0, 0);
-
-    SessionData* session_data = GetSessionData(ctx.Session());
-    ReleaseRight(session_data);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(RESULT_SUCCESS);
-
-    LOG_WARNING(Service_GSP, "called");
-}
-
-void GSP_GPU::StoreDataCache(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x1F, 2, 2);
-
-    u32 address = rp.Pop<u32>();
-    u32 size = rp.Pop<u32>();
-    auto process = rp.PopObject<Kernel::Process>();
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(RESULT_SUCCESS);
-
-    LOG_DEBUG(Service_GSP, "(STUBBED) called address=0x{:08X}, size=0x{:08X}, process={}", address,
-              size, process->process_id);
-}
-
-void GSP_GPU::SetLedForceOff(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx, 0x1C, 1, 0);
-
-    u8 state = rp.Pop<u8>();
-
-    system.Kernel().GetSharedPageHandler().Set3DLed(state);
-
-    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
-    rb.Push(RESULT_SUCCESS);
-    LOG_DEBUG(Service_GSP, "(STUBBED) called");
-}
-
-SessionData* GSP_GPU::FindRegisteredThreadData(u32 thread_id) {
-    for (auto& session_info : connected_sessions) {
-        SessionData* data = static_cast<SessionData*>(session_info.data.get());
-        if (!data->registered)
-            continue;
-        if (data->thread_id == thread_id)
-            return data;
-    }
-    return nullptr;
 }
 
 GSP_GPU::GSP_GPU(Core::System& system) : ServiceFramework("gsp::Gpu", 2), system(system) {
@@ -821,17 +765,8 @@ GSP_GPU::GSP_GPU(Core::System& system) : ServiceFramework("gsp::Gpu", 2), system
     first_initialization = true;
 };
 
-SessionData::SessionData() {
-    // Assign a new thread id to this session when it connects. Note: In the real GSP service this
-    // is done through a real thread (svcCreateThread) but we have to simulate it since our HLE
-    // services don't have threads.
-    thread_id = GetUnusedThreadId();
-    used_thread_ids[thread_id] = true;
-}
+SessionData::SessionData() {}
 
-SessionData::~SessionData() {
-    // Free the thread id slot so that other sessions can use it.
-    used_thread_ids[thread_id] = false;
-}
+SessionData::~SessionData() {}
 
 } // namespace Service::GSP

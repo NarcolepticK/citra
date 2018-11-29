@@ -1438,11 +1438,11 @@ SurfaceSurfaceRect_Tuple RasterizerCacheOpenGL::GetFramebufferSurfaces(
     return std::make_tuple(color_surface, depth_surface, fb_rect);
 }
 
-Surface RasterizerCacheOpenGL::GetFillSurface(const GPU::Regs::MemoryFillConfig& config) {
+Surface RasterizerCacheOpenGL::GetFillSurface(const HW::GPU::MemoryFillConfig& config) {
     Surface new_surface = std::make_shared<CachedSurface>();
 
-    new_surface->addr = config.GetStartAddress();
-    new_surface->end = config.GetEndAddress();
+    new_surface->addr = HW::GPU::Gpu::DecodeAddressRegister(config.address_start);
+    new_surface->end = HW::GPU::Gpu::DecodeAddressRegister(config.address_end);
     new_surface->size = new_surface->end - new_surface->addr;
     new_surface->type = SurfaceType::Fill;
     new_surface->res_scale = std::numeric_limits<u16>::max();

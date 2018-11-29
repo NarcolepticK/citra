@@ -16,6 +16,7 @@
 namespace VideoCore {
 
 std::unique_ptr<RendererBase> g_renderer; ///< Renderer plugin
+std::weak_ptr<Service::GSP::GSP_GPU> gsp_gpu;
 
 std::atomic<bool> g_hw_renderer_enabled;
 std::atomic<bool> g_shader_jit_enabled;
@@ -29,14 +30,11 @@ void* g_screenshot_bits;
 std::function<void()> g_screenshot_complete_callback;
 Layout::FramebufferLayout g_screenshot_framebuffer_layout;
 
-Memory::MemorySystem* g_memory;
-
 /// Initialize the video core
-Core::System::ResultStatus Init(EmuWindow& emu_window, Memory::MemorySystem& memory) {
-    g_memory = &memory;
+Core::System::ResultStatus Init(Core::System& system, EmuWindow& emu_window) {
     Pica::Init();
 
-    g_renderer = std::make_unique<OpenGL::RendererOpenGL>(emu_window);
+    g_renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);
     Core::System::ResultStatus result = g_renderer->Init();
 
     if (result != Core::System::ResultStatus::Success) {
@@ -79,5 +77,8 @@ u16 GetResolutionScaleFactor() {
         return 1;
     }
 }
+void SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp) {
+    gsp_gpu = std::move(gsp);
+};
 
 } // namespace VideoCore

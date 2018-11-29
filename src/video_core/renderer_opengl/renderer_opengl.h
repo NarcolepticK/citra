@@ -24,7 +24,7 @@ struct TextureInfo {
     OGLTexture resource;
     GLsizei width;
     GLsizei height;
-    GPU::Regs::PixelFormat format;
+    HW::GPU::PixelFormat format;
     GLenum gl_format;
     GLenum gl_type;
 };
@@ -38,7 +38,7 @@ struct ScreenInfo {
 
 class RendererOpenGL : public RendererBase {
 public:
-    explicit RendererOpenGL(EmuWindow& window);
+    explicit RendererOpenGL(Core::System& system, EmuWindow& window);
     ~RendererOpenGL() override;
 
     /// Swap buffers (render frame)
@@ -53,13 +53,13 @@ public:
 private:
     void InitOpenGLObjects();
     void ConfigureFramebufferTexture(TextureInfo& texture,
-                                     const GPU::Regs::FramebufferConfig& framebuffer);
+                                     const HW::GPU::FramebufferConfig& framebuffer);
     void DrawScreens(const Layout::FramebufferLayout& layout);
     void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h);
     void UpdateFramerate();
 
     // Loads framebuffer from emulated memory into the display information structure
-    void LoadFBToScreenInfo(const GPU::Regs::FramebufferConfig& framebuffer,
+    void LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& framebuffer,
                             ScreenInfo& screen_info, bool right_eye);
     // Fills active OpenGL texture with the given RGB color.
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, const TextureInfo& texture);

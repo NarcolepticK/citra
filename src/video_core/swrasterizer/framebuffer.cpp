@@ -29,7 +29,7 @@ void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
 
     const u32 coarse_y = y & ~7;
     u32 bytes_per_pixel =
-        GPU::Regs::BytesPerPixel(GPU::Regs::PixelFormat(framebuffer.color_format.Value()));
+        HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
     u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
                      coarse_y * framebuffer.width * bytes_per_pixel;
     u8* dst_pixel = VideoCore::g_memory->GetPhysicalPointer(addr) + dst_offset;
@@ -70,7 +70,7 @@ const Math::Vec4<u8> GetPixel(int x, int y) {
 
     const u32 coarse_y = y & ~7;
     u32 bytes_per_pixel =
-        GPU::Regs::BytesPerPixel(GPU::Regs::PixelFormat(framebuffer.color_format.Value()));
+        HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
     u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
                      coarse_y * framebuffer.width * bytes_per_pixel;
     u8* src_pixel = VideoCore::g_memory->GetPhysicalPointer(addr) + src_offset;

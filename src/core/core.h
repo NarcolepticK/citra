@@ -47,6 +47,10 @@ namespace Cheats {
 class CheatEngine;
 }
 
+namespace HW {
+class HardwareManager;
+}
+
 namespace Core {
 
 class Timing;
@@ -204,6 +208,12 @@ public:
     /// Gets a const reference to the cheat engine
     const Cheats::CheatEngine& CheatEngine() const;
 
+    /// Gets a reference to the hardware manager
+    HW::HardwareManager& HardwareManager();
+
+    /// Gets a const reference to the hardware manager
+    const HW::HardwareManager& HardwareManager() const;
+
     PerfStats perf_stats;
     FrameLimiter frame_limiter;
 
@@ -266,6 +276,9 @@ private:
 
     /// Cheats manager
     std::unique_ptr<Cheats::CheatEngine> cheat_engine;
+
+    /// Hardware manager
+    std::unique_ptr<HW::HardwareManager> hardware_manager;
 
 #ifdef ENABLE_SCRIPTING
     /// RPC Server for scripting support

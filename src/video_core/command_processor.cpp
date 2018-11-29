@@ -11,7 +11,6 @@
 #include "common/microprofile.h"
 #include "common/vector_math.h"
 #include "core/hle/service/gsp/gsp.h"
-#include "core/hw/gpu.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
 #include "video_core/command_processor.h"
@@ -149,7 +148,9 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     switch (id) {
     // Trigger IRQ
     case PICA_REG_INDEX(trigger_irq):
-        Service::GSP::SignalInterrupt(Service::GSP::InterruptId::P3D);
+        if (auto service = VideoCore::gsp_gpu.lock()) {
+            service->SignalInterrupt(Service::GSP::InterruptId::P3D);
+        }
         break;
 
     case PICA_REG_INDEX(pipeline.triangle_topology):

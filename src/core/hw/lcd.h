@@ -9,10 +9,16 @@
 #include "common/bit_field.h"
 #include "common/common_funcs.h"
 #include "common/common_types.h"
+#include "core/mmio.h"
 
-#define LCD_REG_INDEX(field_name) (offsetof(LCD::Regs, field_name) / sizeof(u32))
+#define LCD_REG_INDEX(field_name) (offsetof(HW::LCD::Regs, field_name) / sizeof(u32))
 
-namespace LCD {
+namespace Core {
+class System;
+}
+
+
+namespace HW::LCD {
 
 struct Regs {
 
@@ -29,9 +35,7 @@ struct Regs {
     ColorFill color_fill_top;
     INSERT_PADDING_WORDS(0xE);
     u32 backlight_top;
-
     INSERT_PADDING_WORDS(0x1F0);
-
     ColorFill color_fill_bottom;
     INSERT_PADDING_WORDS(0xE);
     u32 backlight_bottom;
@@ -51,36 +55,52 @@ struct Regs {
         return content[index];
     }
 };
-static_assert(std::is_standard_layout<Regs>::value, "Structure does not use standard layout");
+static_assert(std::is_standard_layout<Regs>::value, "Regs Structure does not use standard layout");
+static_assert(offsetof(Regs, color_fill_top) == 0x81 * 4,
+              "color_fill_top has invalid position");
+static_assert(offsetof(Regs, backlight_top) == 0x90 * 4,
+              "backlight_top has invalid position");
+static_assert(offsetof(Regs, color_fill_bottom) == 0x281 * 4,
+              "color_fill_bottom has invalid position");
+static_assert(offsetof(Regs, backlight_bottom) == 0x290 * 4,
+              "backlight_bottom has invalid position");
 
-// TODO: MSVC does not support using offsetof() on non-static data members even though this
-//       is technically allowed since C++11. This macro should be enabled once MSVC adds
-//       support for that.
-#ifndef _MSC_VER
-#define ASSERT_REG_POSITION(field_name, position)                                                  \
-    static_assert(offsetof(Regs, field_name) == position * 4,                                      \
-                  "Field " #field_name " has invalid position")
+class Lcd : public Memory::MMIORegion {
+public:
+    explicit Lcd(Core::System& system);
+    ~Lcd() = default;
 
-ASSERT_REG_POSITION(color_fill_top, 0x81);
-ASSERT_REG_POSITION(backlight_top, 0x90);
-ASSERT_REG_POSITION(color_fill_bottom, 0x281);
-ASSERT_REG_POSITION(backlight_bottom, 0x290);
+    void Init();
+    void Shutdown();
 
-#undef ASSERT_REG_POSITION
-#endif // !defined(_MSC_VER)
+    template <typename T>
+    void Read(T& var, u32 addr);
 
-extern Regs g_regs;
+    template <typename T>
+    void Write(u32 addr, const T data);
 
-template <typename T>
-void Read(T& var, const u32 addr);
+    bool IsValidAddress(VAddr addr) override;
 
-template <typename T>
-void Write(u32 addr, const T data);
+    u8 Read8(VAddr addr) override;
+    u16 Read16(VAddr addr) override;
+    u32 Read32(VAddr addr) override;
+    u64 Read64(VAddr addr) override;
 
-/// Initialize hardware
-void Init();
+    bool ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) override;
 
-/// Shutdown hardware
-void Shutdown();
+    void Write8(VAddr addr, u8 data) override;
+    void Write16(VAddr addr, u16 data) override;
+    void Write32(VAddr addr, u32 data) override;
+    void Write64(VAddr addr, u64 data) override;
 
-} // namespace LCD
+    bool WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) override;
+
+    HW::LCD::Regs& Regs();
+    const HW::LCD::Regs& Regs() const;
+
+    static constexpr u32 VADDR_LCD = 0x1ED02000;
+private:
+    HW::LCD::Regs regs;
+    Core::System& system;
+};
+} // namespace HW::LCD

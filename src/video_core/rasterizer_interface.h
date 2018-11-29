@@ -48,22 +48,22 @@ public:
     virtual void FlushAndInvalidateRegion(PAddr addr, u32 size) = 0;
 
     /// Attempt to use a faster method to perform a display transfer with is_texture_copy = 0
-    virtual bool AccelerateDisplayTransfer(const GPU::Regs::DisplayTransferConfig& config) {
+    virtual bool AccelerateDisplayTransfer(const HW::GPU::DisplayTransferConfig& config) {
         return false;
     }
 
     /// Attempt to use a faster method to perform a display transfer with is_texture_copy = 1
-    virtual bool AccelerateTextureCopy(const GPU::Regs::DisplayTransferConfig& config) {
+    virtual bool AccelerateTextureCopy(const HW::GPU::DisplayTransferConfig& config) {
         return false;
     }
 
     /// Attempt to use a faster method to fill a region
-    virtual bool AccelerateFill(const GPU::Regs::MemoryFillConfig& config) {
+    virtual bool AccelerateFill(const HW::GPU::MemoryFillConfig& config) {
         return false;
     }
 
     /// Attempt to use a faster method to display the framebuffer to screen
-    virtual bool AccelerateDisplay(const GPU::Regs::FramebufferConfig& config,
+    virtual bool AccelerateDisplay(const HW::GPU::FramebufferConfig& config,
                                    PAddr framebuffer_addr, u32 pixel_stride,
                                    OpenGL::ScreenInfo& screen_info) {
         return false;

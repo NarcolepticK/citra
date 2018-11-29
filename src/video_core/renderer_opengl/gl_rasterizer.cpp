@@ -1364,11 +1364,11 @@ void RasterizerOpenGL::FlushAndInvalidateRegion(PAddr addr, u32 size) {
     res_cache.InvalidateRegion(addr, size, nullptr);
 }
 
-bool RasterizerOpenGL::AccelerateDisplayTransfer(const GPU::Regs::DisplayTransferConfig& config) {
+bool RasterizerOpenGL::AccelerateDisplayTransfer(const HW::GPU::DisplayTransferConfig& config) {
     MICROPROFILE_SCOPE(OpenGL_Blits);
 
     SurfaceParams src_params;
-    src_params.addr = config.GetPhysicalInputAddress();
+    src_params.addr = HW::GPU::Gpu::DecodeAddressRegister(config.input_address);
     src_params.width = config.output_width;
     src_params.stride = config.input_width;
     src_params.height = config.output_height;
@@ -1377,10 +1377,10 @@ bool RasterizerOpenGL::AccelerateDisplayTransfer(const GPU::Regs::DisplayTransfe
     src_params.UpdateParams();
 
     SurfaceParams dst_params;
-    dst_params.addr = config.GetPhysicalOutputAddress();
-    dst_params.width = config.scaling != config.NoScale ? config.output_width.Value() / 2
+    dst_params.addr = HW::GPU::Gpu::DecodeAddressRegister(config.output_address);
+    dst_params.width = config.scaling != HW::GPU::ScalingMode::NoScale ? config.output_width.Value() / 2
                                                         : config.output_width.Value();
-    dst_params.height = config.scaling == config.ScaleXY ? config.output_height.Value() / 2
+    dst_params.height = config.scaling == HW::GPU::ScalingMode::ScaleXY ? config.output_height.Value() / 2
                                                          : config.output_height.Value();
     dst_params.is_tiled = config.input_linear != config.dont_swizzle;
     dst_params.pixel_format = SurfaceParams::PixelFormatFromGPUPixelFormat(config.output_format);
@@ -1415,7 +1415,7 @@ bool RasterizerOpenGL::AccelerateDisplayTransfer(const GPU::Regs::DisplayTransfe
     return true;
 }
 
-bool RasterizerOpenGL::AccelerateTextureCopy(const GPU::Regs::DisplayTransferConfig& config) {
+bool RasterizerOpenGL::AccelerateTextureCopy(const HW::GPU::DisplayTransferConfig& config) {
     u32 copy_size = Common::AlignDown(config.texture_copy.size, 16);
     if (copy_size == 0) {
         return false;
@@ -1448,7 +1448,7 @@ bool RasterizerOpenGL::AccelerateTextureCopy(const GPU::Regs::DisplayTransferCon
     }
 
     SurfaceParams src_params;
-    src_params.addr = config.GetPhysicalInputAddress();
+    src_params.addr = HW::GPU::Gpu::DecodeAddressRegister(config.input_address);
     src_params.stride = input_width + input_gap; // stride in bytes
     src_params.width = input_width;              // width in bytes
     src_params.height = copy_size / input_width;
@@ -1470,7 +1470,7 @@ bool RasterizerOpenGL::AccelerateTextureCopy(const GPU::Regs::DisplayTransferCon
     }
 
     SurfaceParams dst_params = *src_surface;
-    dst_params.addr = config.GetPhysicalOutputAddress();
+    dst_params.addr = HW::GPU::Gpu::DecodeAddressRegister(config.output_address);
     dst_params.width = src_rect.GetWidth() / src_surface->res_scale;
     dst_params.stride = dst_params.width + src_surface->PixelsInBytes(
                                                src_surface->is_tiled ? output_gap / 8 : output_gap);
@@ -1500,7 +1500,7 @@ bool RasterizerOpenGL::AccelerateTextureCopy(const GPU::Regs::DisplayTransferCon
     return true;
 }
 
-bool RasterizerOpenGL::AccelerateFill(const GPU::Regs::MemoryFillConfig& config) {
+bool RasterizerOpenGL::AccelerateFill(const HW::GPU::MemoryFillConfig& config) {
     Surface dst_surface = res_cache.GetFillSurface(config);
     if (dst_surface == nullptr)
         return false;
@@ -1509,7 +1509,7 @@ bool RasterizerOpenGL::AccelerateFill(const GPU::Regs::MemoryFillConfig& config)
     return true;
 }
 
-bool RasterizerOpenGL::AccelerateDisplay(const GPU::Regs::FramebufferConfig& config,
+bool RasterizerOpenGL::AccelerateDisplay(const HW::GPU::FramebufferConfig& config,
                                          PAddr framebuffer_addr, u32 pixel_stride,
                                          ScreenInfo& screen_info) {
     if (framebuffer_addr == 0) {
