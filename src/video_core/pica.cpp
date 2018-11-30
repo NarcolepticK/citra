@@ -31,7 +31,7 @@ State::State() : geometry_pipeline(*this) {
         using Pica::Shader::OutputVertex;
         auto AddTriangle = [this](const OutputVertex& v0, const OutputVertex& v1,
                                   const OutputVertex& v2) {
-            VideoCore::g_renderer->Rasterizer()->AddTriangle(v0, v1, v2);
+            Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->AddTriangle(v0, v1, v2);
         };
         primitive_assembler.SubmitVertex(
             Shader::OutputVertex::FromAttributeBuffer(regs.rasterizer, vertex), AddTriangle);

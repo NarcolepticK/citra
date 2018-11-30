@@ -21,20 +21,19 @@ void Apply() {
     GDBStub::SetServerPort(values.gdbstub_port);
     GDBStub::ToggleServer(values.use_gdbstub);
 
-    VideoCore::g_hw_renderer_enabled = values.use_hw_renderer;
-    VideoCore::g_shader_jit_enabled = values.use_shader_jit;
-    VideoCore::g_hw_shader_enabled = values.use_hw_shader;
-    VideoCore::g_hw_shader_accurate_gs = values.shaders_accurate_gs;
-    VideoCore::g_hw_shader_accurate_mul = values.shaders_accurate_mul;
-
-    if (VideoCore::g_renderer) {
-        VideoCore::g_renderer->UpdateCurrentFramebufferLayout();
-    }
-
-    VideoCore::g_renderer_bg_color_update_requested = true;
-
     auto& system = Core::System::GetInstance();
     if (system.IsPoweredOn()) {
+        system.VideoCore().Settings().hw_renderer_enabled = values.use_hw_renderer;
+        system.VideoCore().Settings().shader_jit_enabled = values.use_shader_jit;
+        system.VideoCore().Settings().hw_shader_enabled = values.use_hw_shader;
+        system.VideoCore().Settings().hw_shader_accurate_gs = values.shaders_accurate_gs;
+        system.VideoCore().Settings().hw_shader_accurate_mul = values.shaders_accurate_mul;
+
+        if(&system.VideoCore().Renderer())
+            system.VideoCore().Renderer().UpdateCurrentFramebufferLayout();
+
+        system.VideoCore().Settings().renderer_bg_color_update_requested = true;
+
         Core::DSP().SetSink(values.sink_id, values.audio_device_id);
         Core::DSP().EnableStretching(values.enable_audio_stretching);
 

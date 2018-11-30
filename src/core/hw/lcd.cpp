@@ -36,8 +36,6 @@ inline void Lcd::Read(T& var, u32 addr) {
     }
 
     var = regs[index];
-
-    LOG_DEBUG(HW_LCD, "Read{} @ {:#010X} = {:#010X}", sizeof(var) * 8, addr, static_cast<u32>(var));
 }
 
 template <typename T>
@@ -60,8 +58,6 @@ inline void Lcd::Write(u32 addr, const T data) {
         Pica::g_debug_context->recorder->RegisterWritten<T>(
             addr + VADDR_LCD - VADDR_BASE + PADDR_BASE, data);
     }
-
-    LOG_DEBUG(HW_LCD, "Write{} @ {:#010X} = {:#010X}", sizeof(data) * 8, addr, static_cast<u32>(data));
 }
 
 // Explicitly instantiate template functions because we aren't defining this in the header:

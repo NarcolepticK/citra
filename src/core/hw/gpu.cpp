@@ -74,25 +74,19 @@ void Gpu::Shutdown() {
 
 /// Update hardware
 void Gpu::VBlankCallback(u64 userdata, s64 cycles_late) {
-    VideoCore::g_renderer->SwapBuffers();
+    system.VideoCore().Renderer().SwapBuffers();
 
     // Signal to GSP that GPU interrupt has occurred
     // TODO(yuriks): hwtest to determine if PDC0 is for the Top screen and PDC1 for the Sub
     // screen, or if both use the same interrupts and these two instead determine the
     // beginning and end of the VBlank period. If needed, split the interrupt firing into
     // two different intervals.
-    if (auto service = gsp_gpu.lock()) {
-            service->SignalInterrupt(Service::GSP::InterruptId::PDC0);
-            service->SignalInterrupt(Service::GSP::InterruptId::PDC1);
-    }
+    system.VideoCore().SignalInterrupt(Service::GSP::InterruptId::PDC0);
+    system.VideoCore().SignalInterrupt(Service::GSP::InterruptId::PDC1);
 
     // Reschedule recurrent event
     system.CoreTiming().ScheduleEvent(frame_ticks - cycles_late, vblank_event);
 }
-
-void Gpu::SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp) {
-    gsp_gpu = std::move(gsp);
-};
 
 int Gpu::BytesPerPixel(PixelFormat format) {
     switch (format) {
@@ -151,7 +145,7 @@ void Gpu::MemoryFill(const MemoryFillConfig& config) {
     u8* start = system.Memory().GetPhysicalPointer(start_addr);
     u8* end = system.Memory().GetPhysicalPointer(end_addr);
 
-    if (VideoCore::g_renderer->Rasterizer()->AccelerateFill(config))
+    if (system.VideoCore().Renderer().Rasterizer()->AccelerateFill(config))
         return;
 
     system.Memory().RasterizerInvalidateRegion(start_addr, end_addr - start_addr);
@@ -214,7 +208,7 @@ void Gpu::DisplayTransfer(const DisplayTransferConfig& config) {
         return;
     }
 
-    if (VideoCore::g_renderer->Rasterizer()->AccelerateDisplayTransfer(config))
+    if (system.VideoCore().Renderer().Rasterizer()->AccelerateDisplayTransfer(config))
         return;
 
     const u8* src_pointer = system.Memory().GetPhysicalPointer(src_addr);
@@ -370,7 +364,7 @@ void Gpu::TextureCopy(const DisplayTransferConfig& config) {
         return;
     }
 
-    if (VideoCore::g_renderer->Rasterizer()->AccelerateTextureCopy(config))
+    if (system.VideoCore().Renderer().Rasterizer()->AccelerateTextureCopy(config))
         return;
 
     u8* src_pointer = system.Memory().GetPhysicalPointer(src_addr);
@@ -481,13 +475,9 @@ inline void Gpu::Write(u32 addr, const T data) {
             // TODO: hwtest this
             if (start_addr != 0) {
                 if (!is_second_filler) {
-                    if (auto service = gsp_gpu.lock()) {
-                        service->SignalInterrupt(Service::GSP::InterruptId::PSC0);
-                    }
+                    system.VideoCore().SignalInterrupt(Service::GSP::InterruptId::PSC0);
                 } else {
-                    if (auto service = gsp_gpu.lock()) {
-                        service->SignalInterrupt(Service::GSP::InterruptId::PSC1);
-                    }
+                    system.VideoCore().SignalInterrupt(Service::GSP::InterruptId::PSC1);
                 }
             }
 
@@ -532,9 +522,7 @@ inline void Gpu::Write(u32 addr, const T data) {
             }
 
             regs.display_transfer_config.trigger = 0;
-            if (auto service = gsp_gpu.lock()) {
-                service->SignalInterrupt(Service::GSP::InterruptId::PPF);
-            }
+            system.VideoCore().SignalInterrupt(Service::GSP::InterruptId::PPF);
         }
         break;
     }

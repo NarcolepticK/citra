@@ -17,7 +17,7 @@ void RendererBase::UpdateCurrentFramebufferLayout() {
 }
 
 void RendererBase::RefreshRasterizerSetting() {
-    bool hw_renderer_enabled = VideoCore::g_hw_renderer_enabled;
+    bool hw_renderer_enabled = system.VideoCore().Settings().hw_renderer_enabled;
     if (rasterizer == nullptr || opengl_rasterizer_active != hw_renderer_enabled) {
         opengl_rasterizer_active = hw_renderer_enabled;
 

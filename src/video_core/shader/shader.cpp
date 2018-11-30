@@ -144,7 +144,7 @@ static InterpreterEngine interpreter_engine;
 ShaderEngine* GetEngine() {
 #ifdef ARCHITECTURE_x86_64
     // TODO(yuriks): Re-initialize on each change rather than being persistent
-    if (VideoCore::g_shader_jit_enabled) {
+    if (Core::System::GetInstance().VideoCore().Settings().shader_jit_enabled) {
         if (jit_engine == nullptr) {
             jit_engine = std::make_unique<JitX64Engine>();
         }

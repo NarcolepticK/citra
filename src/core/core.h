@@ -51,6 +51,10 @@ namespace HW {
 class HardwareManager;
 }
 
+namespace VideoCore {
+class VideoCore;
+}
+
 namespace Core {
 
 class Timing;
@@ -214,6 +218,12 @@ public:
     /// Gets a const reference to the hardware manager
     const HW::HardwareManager& HardwareManager() const;
 
+    /// Gets a reference to the video core
+    VideoCore::VideoCore& VideoCore();
+
+    /// Gets a const reference to the video core
+    const VideoCore::VideoCore& VideoCore() const;
+
     PerfStats perf_stats;
     FrameLimiter frame_limiter;
 
@@ -279,6 +289,9 @@ private:
 
     /// Hardware manager
     std::unique_ptr<HW::HardwareManager> hardware_manager;
+
+    /// VideoCore
+    std::unique_ptr<VideoCore::VideoCore> video_core;
 
 #ifdef ENABLE_SCRIPTING
     /// RPC Server for scripting support

@@ -717,7 +717,6 @@ bool GMainWindow::LoadROM(const QString& filename) {
     }
 
     Core::System& system{Core::System::GetInstance()};
-
     const Core::System::ResultStatus result{system.Load(*render_window, filename.toStdString())};
 
     if (result != Core::System::ResultStatus::Success) {
@@ -794,7 +793,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
         }
         return false;
     }
-
+    Settings::Apply();
     std::string title;
     system.GetAppLoader().ReadTitle(title);
     game_title = QString::fromStdString(title);

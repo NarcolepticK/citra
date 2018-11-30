@@ -7,51 +7,59 @@
 #include <atomic>
 #include <memory>
 #include "core/core.h"
-#include "core/frontend/emu_window.h"
+#include "video_core/gpu_debugger.h"
+#include "video_core/renderer_base.h"
 
 class EmuWindow;
-class RendererBase;
 
 namespace Service {
 namespace GSP {
 class GSP_GPU;
+enum class InterruptId : u8;
 } // namespace GSP
 } // namespace Service
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Video Core namespace
-
 namespace VideoCore {
 
-extern std::unique_ptr<RendererBase> g_renderer; ///< Renderer plugin
-extern std::weak_ptr<Service::GSP::GSP_GPU> gsp_gpu;
+struct VideoCoreSettings {
+    std::atomic<bool> hw_renderer_enabled;
+    std::atomic<bool> shader_jit_enabled;
+    std::atomic<bool> hw_shader_enabled;
+    std::atomic<bool> hw_shader_accurate_gs;
+    std::atomic<bool> hw_shader_accurate_mul;
+    std::atomic<bool> renderer_bg_color_update_requested;
+    // Screenshot
+    std::atomic<bool> renderer_screenshot_requested;
+    void* screenshot_bits;
+    std::function<void()> screenshot_compelete_callback;
+    Layout::FramebufferLayout screenshot_framebuffer_layout;
+};
 
-// TODO: Wrap these in a user settings struct along with any other graphics settings (often set from
-// qt ui)
-extern std::atomic<bool> g_hw_renderer_enabled;
-extern std::atomic<bool> g_shader_jit_enabled;
-extern std::atomic<bool> g_hw_shader_enabled;
-extern std::atomic<bool> g_hw_shader_accurate_gs;
-extern std::atomic<bool> g_hw_shader_accurate_mul;
-extern std::atomic<bool> g_renderer_bg_color_update_requested;
-// Screenshot
-extern std::atomic<bool> g_renderer_screenshot_requested;
-extern void* g_screenshot_bits;
-extern std::function<void()> g_screenshot_complete_callback;
-extern Layout::FramebufferLayout g_screenshot_framebuffer_layout;
+class VideoCore {
+public:
+    explicit VideoCore(Core::System& system);
+    ~VideoCore() = default;
 
-/// Initialize the video core
-Core::System::ResultStatus Init(Core::System& system, EmuWindow& emu_window);
+    Core::System::ResultStatus Init(EmuWindow& emu_window);
+    Core::System::ResultStatus Shutdown();
+    //void Update();
+    void SignalInterrupt(Service::GSP::InterruptId interrupt_id);
 
-/// Shutdown the video core
-void Shutdown();
+    /// Request a screenshot of the next frame
+    void RequestScreenshot(void* data, std::function<void()> callback,
+                           const Layout::FramebufferLayout& layout);
 
-/// Request a screenshot of the next frame
-void RequestScreenshot(void* data, std::function<void()> callback,
-                       const Layout::FramebufferLayout& layout);
+    u16 GetResolutionScaleFactor();
 
-u16 GetResolutionScaleFactor();
-/// Sets the gsp class that we trigger interrupts for
-void SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp);
+    /// Gets a reference to the renderer
+    RendererBase& Renderer();
+    const RendererBase& Renderer() const;
 
+    VideoCoreSettings& Settings();
+    const VideoCoreSettings& Settings() const;
+private:
+    Core::System& system;
+    VideoCoreSettings settings;
+    std::unique_ptr<RendererBase> renderer;
+};
 } // namespace VideoCore

@@ -16,8 +16,6 @@ void InstallInterfaces(Core::System& system) {
     auto& service_manager = system.ServiceManager();
     auto gpu = std::make_shared<GSP_GPU>(system);
     gpu->InstallAsService(service_manager);
-    system.HardwareManager().Gpu().SetServiceToInterrupt(std::move(gpu));
-    VideoCore::SetServiceToInterrupt(std::move(gpu));
 
     std::make_shared<GSP_LCD>()->InstallAsService(service_manager);
 }

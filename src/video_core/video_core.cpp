@@ -5,9 +5,11 @@
 #include <memory>
 #include "common/logging/log.h"
 #include "core/settings.h"
+#include "core/hle/service/gsp/gsp_gpu.h"
 #include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
+#include "video_core/gpu_debugger.h"
 #include "video_core/video_core.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,27 +17,12 @@
 
 namespace VideoCore {
 
-std::unique_ptr<RendererBase> g_renderer; ///< Renderer plugin
-std::weak_ptr<Service::GSP::GSP_GPU> gsp_gpu;
+VideoCore::VideoCore(Core::System& system) : system(system) {};
 
-std::atomic<bool> g_hw_renderer_enabled;
-std::atomic<bool> g_shader_jit_enabled;
-std::atomic<bool> g_hw_shader_enabled;
-std::atomic<bool> g_hw_shader_accurate_gs;
-std::atomic<bool> g_hw_shader_accurate_mul;
-std::atomic<bool> g_renderer_bg_color_update_requested;
-// Screenshot
-std::atomic<bool> g_renderer_screenshot_requested;
-void* g_screenshot_bits;
-std::function<void()> g_screenshot_complete_callback;
-Layout::FramebufferLayout g_screenshot_framebuffer_layout;
-
-/// Initialize the video core
-Core::System::ResultStatus Init(Core::System& system, EmuWindow& emu_window) {
+Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
     Pica::Init();
-
-    g_renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);
-    Core::System::ResultStatus result = g_renderer->Init();
+    renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);
+    Core::System::ResultStatus result = renderer->Init();
 
     if (result != Core::System::ResultStatus::Success) {
         LOG_ERROR(Render, "initialization failed !");
@@ -46,39 +33,62 @@ Core::System::ResultStatus Init(Core::System& system, EmuWindow& emu_window) {
     return result;
 }
 
-/// Shutdown the video core
-void Shutdown() {
+Core::System::ResultStatus VideoCore::Shutdown() {
     Pica::Shutdown();
 
-    g_renderer.reset();
+    renderer.reset();
 
     LOG_DEBUG(Render, "shutdown OK");
+    return Core::System::ResultStatus::Success;
 }
 
-void RequestScreenshot(void* data, std::function<void()> callback,
-                       const Layout::FramebufferLayout& layout) {
-    if (g_renderer_screenshot_requested) {
+void VideoCore::SignalInterrupt(Service::GSP::InterruptId interrupt_id) {
+    auto gsp = system.ServiceManager().GetService<Service::GSP::GSP_GPU>("gsp::Gpu");
+    if (gsp)
+        gsp->SignalInterrupt(interrupt_id);
+};
+
+void VideoCore::RequestScreenshot(void* data, std::function<void()> callback,
+                                  const Layout::FramebufferLayout& layout) {
+    if (settings.renderer_screenshot_requested) {
         LOG_ERROR(Render, "A screenshot is already requested or in progress, ignoring the request");
         return;
     }
-    g_screenshot_bits = data;
-    g_screenshot_complete_callback = std::move(callback);
-    g_screenshot_framebuffer_layout = layout;
-    g_renderer_screenshot_requested = true;
+    settings.screenshot_bits = data;
+    settings.screenshot_complete_callback = std::move(callback);
+    settings.screenshot_framebuffer_layout = layout;
+    settings.renderer_screenshot_requested = true;
 }
 
-u16 GetResolutionScaleFactor() {
-    if (g_hw_renderer_enabled) {
+u16 VideoCore::GetResolutionScaleFactor() {
+    if (settings.hw_renderer_enabled) {
         return !Settings::values.resolution_factor
-                   ? g_renderer->GetRenderWindow().GetFramebufferLayout().GetScalingRatio()
+                   ? renderer->GetRenderWindow().GetFramebufferLayout().GetScalingRatio()
                    : Settings::values.resolution_factor;
     } else {
         // Software renderer always render at native resolution
         return 1;
     }
 }
-void SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp) {
+
+void VideoCore::SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp) {
     gsp_gpu = std::move(gsp);
+};
+
+RendererBase& VideoCore::Renderer() {
+    return *renderer;
+};
+
+const RendererBase& VideoCore::Renderer() const {
+    return *renderer;
+};
+
+VideoCoreSettings& VideoCore::Settings() {
+    return settings;
+};
+
+const VideoCoreSettings& VideoCore::Settings() const {
+    return settings;
 };
 
 } // namespace VideoCore

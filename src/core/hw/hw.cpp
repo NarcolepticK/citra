@@ -39,12 +39,29 @@ HardwareManager::HardwareManager(Core::System& system) : system(system) {
 template <typename T>
 inline void HardwareManager::Read(T& var, const u32 addr) {
     switch (addr & 0xFFFFF000) {
-    case HW::GPU::Gpu::VADDR_GPU:
-        gpu->Read(var, addr);
-        break;
-    case HW::LCD::Lcd::VADDR_LCD:
+    case HW::LCD::Lcd::VADDR_LCD: {
         lcd->Read(var, addr);
         break;
+    }
+    case GPU::Gpu::VADDR_GPU:
+    case GPU::Gpu::VADDR_GPU + 0x1000:
+    case GPU::Gpu::VADDR_GPU + 0x2000:
+    case GPU::Gpu::VADDR_GPU + 0x3000:
+    case GPU::Gpu::VADDR_GPU + 0x4000:
+    case GPU::Gpu::VADDR_GPU + 0x5000:
+    case GPU::Gpu::VADDR_GPU + 0x6000:
+    case GPU::Gpu::VADDR_GPU + 0x7000:
+    case GPU::Gpu::VADDR_GPU + 0x8000:
+    case GPU::Gpu::VADDR_GPU + 0x9000:
+    case GPU::Gpu::VADDR_GPU + 0xA000:
+    case GPU::Gpu::VADDR_GPU + 0xB000:
+    case GPU::Gpu::VADDR_GPU + 0xC000:
+    case GPU::Gpu::VADDR_GPU + 0xD000:
+    case GPU::Gpu::VADDR_GPU + 0xE000:
+    case GPU::Gpu::VADDR_GPU + 0xF000: {
+        gpu->Read(var, addr);
+        break;
+    }
     default:
         LOG_ERROR(HW_Memory, "unknown Read{} @ {:#010X}", sizeof(var) * 8, addr);
     }
@@ -53,12 +70,29 @@ inline void HardwareManager::Read(T& var, const u32 addr) {
 template <typename T>
 inline void HardwareManager::Write(u32 addr, const T data) {
     switch (addr & 0xFFFFF000) {
-    case HW::GPU::Gpu::VADDR_GPU:
-        gpu->Write(addr, data);
-        break;
-    case HW::LCD::Lcd::VADDR_LCD:
+    case HW::LCD::Lcd::VADDR_LCD: {
         lcd->Write(addr, data);
         break;
+    }
+    case GPU::Gpu::VADDR_GPU:
+    case GPU::Gpu::VADDR_GPU + 0x1000:
+    case GPU::Gpu::VADDR_GPU + 0x2000:
+    case GPU::Gpu::VADDR_GPU + 0x3000:
+    case GPU::Gpu::VADDR_GPU + 0x4000:
+    case GPU::Gpu::VADDR_GPU + 0x5000:
+    case GPU::Gpu::VADDR_GPU + 0x6000:
+    case GPU::Gpu::VADDR_GPU + 0x7000:
+    case GPU::Gpu::VADDR_GPU + 0x8000:
+    case GPU::Gpu::VADDR_GPU + 0x9000:
+    case GPU::Gpu::VADDR_GPU + 0xA000:
+    case GPU::Gpu::VADDR_GPU + 0xB000:
+    case GPU::Gpu::VADDR_GPU + 0xC000:
+    case GPU::Gpu::VADDR_GPU + 0xD000:
+    case GPU::Gpu::VADDR_GPU + 0xE000:
+    case GPU::Gpu::VADDR_GPU + 0xF000: {
+        gpu->Write(addr, data);
+        break;
+    }
     default:
         LOG_ERROR(HW_Memory, "unknown Write{} {:#010X} @ {:#010X}", sizeof(data) * 8, (u32)data,
                   addr);

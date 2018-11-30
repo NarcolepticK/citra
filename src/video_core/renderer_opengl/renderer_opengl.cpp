@@ -228,9 +228,9 @@ void RendererOpenGL::LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& frameb
         screen_info.display_texture = screen_info.texture.resource.handle;
         screen_info.display_texcoords = MathUtil::Rectangle<float>(0.f, 0.f, 1.f, 1.f);
 
-        Memory::RasterizerFlushRegion(framebuffer_addr, framebuffer.stride * framebuffer.height);
+        system.Memory().RasterizerFlushRegion(framebuffer_addr, framebuffer.stride * framebuffer.height);
 
-        const u8* framebuffer_data = VideoCore::g_memory->GetPhysicalPointer(framebuffer_addr);
+        const u8* framebuffer_data = system.Memory().GetPhysicalPointer(framebuffer_addr);
 
         state.texture_units[0].texture_2d = screen_info.texture.resource.handle;
         state.Apply();
@@ -421,7 +421,7 @@ void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, floa
  * Draws the emulated screens to the emulator window.
  */
 void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
-    if (VideoCore::g_renderer_bg_color_update_requested.exchange(false)) {
+    if (system.VideoCore().Settings().renderer_bg_color_update_requested.exchange(false)) {
         // Update background color before drawing
         glClearColor(Settings::values.bg_red, Settings::values.bg_green, Settings::values.bg_blue,
                      0.0f);

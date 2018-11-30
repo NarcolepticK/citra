@@ -362,37 +362,28 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
 }
 
 void RasterizerFlushRegion(PAddr start, u32 size) {
-    if (VideoCore::g_renderer == nullptr) {
+    if(&Core::System::GetInstance().VideoCore().Renderer() == nullptr)
         return;
-    }
-
-    VideoCore::g_renderer->Rasterizer()->FlushRegion(start, size);
+    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->FlushRegion(start, size);
 }
 
 void RasterizerInvalidateRegion(PAddr start, u32 size) {
-    if (VideoCore::g_renderer == nullptr) {
+    if(&Core::System::GetInstance().VideoCore().Renderer() == nullptr)
         return;
-    }
-
-    VideoCore::g_renderer->Rasterizer()->InvalidateRegion(start, size);
+    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->InvalidateRegion(start, size);
 }
 
 void RasterizerFlushAndInvalidateRegion(PAddr start, u32 size) {
-    // Since pages are unmapped on shutdown after video core is shutdown, the renderer may be
-    // null here
-    if (VideoCore::g_renderer == nullptr) {
+    if(&Core::System::GetInstance().VideoCore().Renderer() == nullptr)
         return;
-    }
-
-    VideoCore::g_renderer->Rasterizer()->FlushAndInvalidateRegion(start, size);
+    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->FlushAndInvalidateRegion(start, size);
 }
 
 void RasterizerFlushVirtualRegion(VAddr start, u32 size, FlushMode mode) {
     // Since pages are unmapped on shutdown after video core is shutdown, the renderer may be
     // null here
-    if (VideoCore::g_renderer == nullptr) {
+    if(&Core::System::GetInstance().VideoCore().Renderer() == nullptr)
         return;
-    }
 
     VAddr end = start + size;
 
@@ -407,7 +398,7 @@ void RasterizerFlushVirtualRegion(VAddr start, u32 size, FlushMode mode) {
         PAddr physical_start = paddr_region_start + (overlap_start - region_start);
         u32 overlap_size = overlap_end - overlap_start;
 
-        auto* rasterizer = VideoCore::g_renderer->Rasterizer();
+        auto* rasterizer = Core::System::GetInstance().VideoCore().Renderer().Rasterizer();
         switch (mode) {
         case FlushMode::Flush:
             rasterizer->FlushRegion(physical_start, overlap_size);

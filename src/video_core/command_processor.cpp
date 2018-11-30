@@ -148,9 +148,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     switch (id) {
     // Trigger IRQ
     case PICA_REG_INDEX(trigger_irq):
-        if (auto service = VideoCore::gsp_gpu.lock()) {
-            service->SignalInterrupt(Service::GSP::InterruptId::P3D);
-        }
+        Core::System::GetInstance().VideoCore().SignalInterrupt(Service::GSP::InterruptId::P3D);
         break;
 
     case PICA_REG_INDEX(pipeline.triangle_topology):
@@ -251,7 +249,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                     // TODO: If drawing after every immediate mode triangle kills performance,
                     // change it to flush triangles whenever a drawing config register changes
                     // See: https://github.com/citra-emu/citra/pull/2866#issuecomment-327011550
-                    VideoCore::g_renderer->Rasterizer()->DrawTriangles();
+                    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->DrawTriangles();
                     if (g_debug_context) {
                         g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
                                                  nullptr);
@@ -290,7 +288,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
         PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = g_state.primitive_assembler;
 
-        bool accelerate_draw = VideoCore::g_hw_shader_enabled && primitive_assembler.IsEmpty();
+        bool accelerate_draw = Core::System::GetInstance().VideoCore().Settings().hw_shader_enabled && primitive_assembler.IsEmpty();
 
         if (regs.pipeline.use_gs == PipelineRegs::UseGS::No) {
             auto topology = primitive_assembler.GetTopology();
@@ -305,7 +303,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             // this, so this is left unimplemented for now. Revisit this when an issue is found in
             // games.
         } else {
-            if (VideoCore::g_hw_shader_accurate_gs) {
+            if (Core::System::GetInstance().VideoCore().Settings().hw_shader_accurate_gs) {
                 accelerate_draw = false;
             }
         }
@@ -313,7 +311,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
 
         if (accelerate_draw &&
-            VideoCore::g_renderer->Rasterizer()->AccelerateDrawBatch(is_indexed)) {
+            Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->AccelerateDrawBatch(is_indexed)) {
             if (g_debug_context) {
                 g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
             }
@@ -431,7 +429,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 VideoCore::g_memory->GetPhysicalPointer(range.first), range.second, range.first);
         }
 
-        VideoCore::g_renderer->Rasterizer()->DrawTriangles();
+        Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->DrawTriangles();
         if (g_debug_context) {
             g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
         }
@@ -647,7 +645,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         break;
     }
 
-    VideoCore::g_renderer->Rasterizer()->NotifyPicaRegisterChanged(id);
+    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->NotifyPicaRegisterChanged(id);
 
     if (g_debug_context)
         g_debug_context->OnEvent(DebugContext::Event::PicaCommandProcessed,

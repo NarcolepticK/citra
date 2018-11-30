@@ -249,7 +249,7 @@ void PicaShaderConfigCommon::Init(const Pica::ShaderRegs& regs, Pica::Shader::Sh
     program_hash = setup.GetProgramCodeHash();
     swizzle_hash = setup.GetSwizzleDataHash();
     main_offset = regs.main_offset;
-    sanitize_mul = VideoCore::g_hw_shader_accurate_mul;
+    sanitize_mul = Core::System::GetInstance().VideoCore().Settings().hw_shader_accurate_mul;
 
     num_outputs = 0;
     output_map.fill(16);

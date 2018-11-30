@@ -208,7 +208,9 @@ System::ResultStatus System::Init(EmuWindow& emu_window, u32 system_mode) {
     Service::Init(*this);
     GDBStub::Init();
 
-    ResultStatus result = VideoCore::Init(*this, emu_window);
+    video_core = std::make_unique<VideoCore::VideoCore>(*this);
+    ResultStatus result = video_core->Init(emu_window);
+    //ResultStatus result = VideoCore::Init(*this, emu_window);
     if (result != ResultStatus::Success) {
         return result;
     }
@@ -278,6 +280,14 @@ const HW::HardwareManager& System::HardwareManager() const {
     return *hardware_manager;
 }
 
+VideoCore::VideoCore& System::VideoCore() {
+    return *video_core;
+}
+
+const VideoCore::VideoCore& System::VideoCore() const {
+    return *video_core;
+}
+
 void System::RegisterSoftwareKeyboard(std::shared_ptr<Frontend::SoftwareKeyboard> swkbd) {
     registered_swkbd = std::move(swkbd);
 }
@@ -294,7 +304,8 @@ void System::Shutdown() {
 
     // Shutdown emulation session
     GDBStub::Shutdown();
-    VideoCore::Shutdown();
+    //VideoCore::Shutdown();
+    video_core->Shutdown();
     kernel.reset();
     hardware_manager->Shutdown();
     telemetry_session.reset();

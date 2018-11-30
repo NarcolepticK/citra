@@ -249,9 +249,6 @@ public:
 
     void VBlankCallback(u64 userdata, s64 cycles_late);
 
-    /// Sets the gsp class that we trigger interrupts for
-    void SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp);
-
     static int BytesPerPixel(PixelFormat format);
 
     static inline u32 DecodeAddressRegister(u32 register_value) {
@@ -297,7 +294,6 @@ public:
 private:
     HW::GPU::Regs regs;
     Core::System& system;
-    std::weak_ptr<Service::GSP::GSP_GPU> gsp_gpu;
 
     /// 268MHz CPU clocks / 60Hz frames per second
     static constexpr u64 frame_ticks = static_cast<u64>(BASE_CLOCK_RATE_ARM11 / SCREEN_REFRESH_RATE);
