@@ -11,9 +11,12 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "common/vector_math.h"
+#include "core/core.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
 #include "video_core/shader/shader.h"
+#include "video_core/video_core.h"
 #include "video_core/swrasterizer/clipper.h"
 #include "video_core/swrasterizer/rasterizer.h"
 
@@ -61,7 +64,7 @@ static void InitScreenCoordinates(Vertex& vtx) {
         float24 offset_z;
     } viewport;
 
-    const auto& regs = g_state.regs;
+    const auto& regs = Core::System::GetInstance().VideoCore().Pica().State().regs;
     viewport.halfsize_x = float24::FromRaw(regs.rasterizer.viewport_size_x);
     viewport.halfsize_y = float24::FromRaw(regs.rasterizer.viewport_size_y);
     viewport.offset_x = float24::FromFloat32(static_cast<float>(regs.rasterizer.viewport_corner.x));
@@ -155,8 +158,9 @@ void ProcessTriangle(const OutputVertex& v0, const OutputVertex& v1, const Outpu
             return;
     }
 
-    if (g_state.regs.rasterizer.clip_enable) {
-        ClippingEdge custom_edge{g_state.regs.rasterizer.GetClipCoef()};
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    if (pica_state.regs.rasterizer.clip_enable) {
+        ClippingEdge custom_edge{pica_state.regs.rasterizer.GetClipCoef()};
         Clip(custom_edge);
 
         if (output_list->size() < 3)

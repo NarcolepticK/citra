@@ -15,6 +15,7 @@
 #include "core/tracer/recorder.h"
 #include "video_core/command_processor.h"
 #include "video_core/debug_utils/debug_utils.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
 #include "video_core/primitive_assembly.h"
@@ -48,22 +49,23 @@ static const u32 expand_bits_to_bytes[] = {
 
 MICROPROFILE_DEFINE(GPU_Drawing, "GPU", "Drawing", MP_RGB(50, 50, 240));
 
-static const char* GetShaderSetupTypeName(Shader::ShaderSetup& setup) {
-    if (&setup == &g_state.vs) {
+static const char* GetShaderSetupTypeName(const Shader::ShaderSetup& setup) {
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    if (&setup == &pica_state.vs) {
         return "vertex shader";
     }
-    if (&setup == &g_state.gs) {
+    if (&setup == &pica_state.gs) {
         return "geometry shader";
     }
     return "unknown shader";
 }
 
-static void WriteUniformBoolReg(Shader::ShaderSetup& setup, u32 value) {
+static void WriteUniformBoolReg(Shader::ShaderSetup& setup, const u32 value) {
     for (unsigned i = 0; i < setup.uniforms.b.size(); ++i)
         setup.uniforms.b[i] = (value & (1 << i)) != 0;
 }
 
-static void WriteUniformIntReg(Shader::ShaderSetup& setup, unsigned index,
+static void WriteUniformIntReg(Shader::ShaderSetup& setup, const unsigned index,
                                const Math::Vec4<u8>& values) {
     ASSERT(index < setup.uniforms.i.size());
     setup.uniforms.i[index] = values;
@@ -72,7 +74,7 @@ static void WriteUniformIntReg(Shader::ShaderSetup& setup, unsigned index,
 }
 
 static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
-                                 int& float_regs_counter, u32 uniform_write_buffer[4], u32 value) {
+                                 int& float_regs_counter, u32 uniform_write_buffer[4], const u32 value) {
     auto& uniform_setup = config.uniform_setup;
 
     // TODO: Does actual hardware indeed keep an intermediate buffer or does
@@ -89,8 +91,8 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
         auto& uniform = setup.uniforms.f[uniform_setup.index];
 
         if (uniform_setup.index >= 96) {
-            LOG_ERROR(HW_GPU, "Invalid {} float uniform index {}", GetShaderSetupTypeName(setup),
-                      (int)uniform_setup.index);
+            LOG_TRACE(HW_GPU, "Invalid {} float uniform index {}", GetShaderSetupTypeName(setup),
+                      static_cast<int>(uniform_setup.index));
         } else {
 
             // NOTE: The destination component order indeed is "backwards"
@@ -108,7 +110,7 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
             }
 
             LOG_TRACE(HW_GPU, "Set {} float uniform {:x} to ({} {} {} {})",
-                      GetShaderSetupTypeName(setup), (int)uniform_setup.index,
+                      GetShaderSetupTypeName(setup), static_cast<int>(uniform_setup.index),
                       uniform.x.ToFloat32(), uniform.y.ToFloat32(), uniform.z.ToFloat32(),
                       uniform.w.ToFloat32());
 
@@ -118,8 +120,12 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
     }
 }
 
-static void WritePicaReg(u32 id, u32 value, u32 mask) {
-    auto& regs = g_state.regs;
+static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
+    auto& video_core = Core::System::GetInstance().VideoCore();
+    auto& pica_state = video_core.Pica().State();
+    auto& regs = pica_state.regs;
+    const auto& settings = video_core.Settings();
+    const auto rasterizer = video_core.Renderer().Rasterizer();
 
     if (id >= Regs::NUM_REGS) {
         LOG_ERROR(
@@ -130,15 +136,14 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     }
 
     // TODO: Figure out how register masking acts on e.g. vs.uniform_setup.set_value
-    u32 old_value = regs.reg_array[id];
-
+    const u32 old_value = regs.reg_array[id];
     const u32 write_mask = expand_bits_to_bytes[mask];
 
     regs.reg_array[id] = (old_value & ~write_mask) | (value & write_mask);
 
     // Double check for is_pica_tracing to avoid call overhead
     if (DebugUtils::IsPicaTracing()) {
-        DebugUtils::OnPicaRegWrite({(u16)id, (u16)mask, regs.reg_array[id]});
+        DebugUtils::OnPicaRegWrite({static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
     }
 
     if (g_debug_context)
@@ -148,20 +153,20 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     switch (id) {
     // Trigger IRQ
     case PICA_REG_INDEX(trigger_irq):
-        Core::System::GetInstance().VideoCore().SignalInterrupt(Service::GSP::InterruptId::P3D);
+        video_core.SignalInterrupt(Service::GSP::InterruptId::P3D);
         break;
 
     case PICA_REG_INDEX(pipeline.triangle_topology):
-        g_state.primitive_assembler.Reconfigure(regs.pipeline.triangle_topology);
+        pica_state.primitive_assembler.Reconfigure(regs.pipeline.triangle_topology);
         break;
 
     case PICA_REG_INDEX(pipeline.restart_primitive):
-        g_state.primitive_assembler.Reset();
+        pica_state.primitive_assembler.Reset();
         break;
 
     case PICA_REG_INDEX(pipeline.vs_default_attributes_setup.index):
-        g_state.immediate.current_attribute = 0;
-        g_state.immediate.reset_geometry_pipeline = true;
+        pica_state.immediate.current_attribute = 0;
+        pica_state.immediate.reset_geometry_pipeline = true;
         default_attr_counter = 0;
         break;
 
@@ -183,7 +188,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             auto& setup = regs.pipeline.vs_default_attributes_setup;
 
             if (setup.index >= 16) {
-                LOG_ERROR(HW_GPU, "Invalid VS default attribute index {}", (int)setup.index);
+                LOG_ERROR(HW_GPU, "Invalid VS default attribute index {}", static_cast<int>(setup.index));
                 break;
             }
 
@@ -197,21 +202,21 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                                            ((default_attr_write_buffer[2] >> 24) & 0xFF));
             attribute.x = float24::FromRaw(default_attr_write_buffer[2] & 0xFFFFFF);
 
-            LOG_TRACE(HW_GPU, "Set default VS attribute {:x} to ({} {} {} {})", (int)setup.index,
+            LOG_TRACE(HW_GPU, "Set default VS attribute {:x} to ({} {} {} {})", static_cast<int>(setup.index),
                       attribute.x.ToFloat32(), attribute.y.ToFloat32(), attribute.z.ToFloat32(),
                       attribute.w.ToFloat32());
 
             // TODO: Verify that this actually modifies the register!
             if (setup.index < 15) {
-                g_state.input_default_attributes.attr[setup.index] = attribute;
+                pica_state.input_default_attributes.attr[setup.index] = attribute;
                 setup.index++;
             } else {
                 // Put each attribute into an immediate input buffer.  When all specified immediate
                 // attributes are present, the Vertex Shader is invoked and everything is sent to
                 // the primitive assembler.
 
-                auto& immediate_input = g_state.immediate.input_vertex;
-                auto& immediate_attribute_id = g_state.immediate.current_attribute;
+                auto& immediate_input = pica_state.immediate.input_vertex;
+                auto& immediate_attribute_id = pica_state.immediate.current_attribute;
 
                 immediate_input.attr[immediate_attribute_id] = attribute;
 
@@ -224,7 +229,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                     Shader::OutputVertex::ValidateSemantics(regs.rasterizer);
 
                     auto* shader_engine = Shader::GetEngine();
-                    shader_engine->SetupBatch(g_state.vs, regs.vs.main_offset);
+                    shader_engine->SetupBatch(pica_state.vs, regs.vs.main_offset);
 
                     // Send to vertex shader
                     if (g_debug_context)
@@ -234,22 +239,22 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                     Shader::AttributeBuffer output{};
 
                     shader_unit.LoadInput(regs.vs, immediate_input);
-                    shader_engine->Run(g_state.vs, shader_unit);
+                    shader_engine->Run(pica_state.vs, shader_unit);
                     shader_unit.WriteOutput(regs.vs, output);
 
                     // Send to geometry pipeline
-                    if (g_state.immediate.reset_geometry_pipeline) {
-                        g_state.geometry_pipeline.Reconfigure();
-                        g_state.immediate.reset_geometry_pipeline = false;
+                    if (pica_state.immediate.reset_geometry_pipeline) {
+                        pica_state.geometry_pipeline.Reconfigure();
+                        pica_state.immediate.reset_geometry_pipeline = false;
                     }
-                    ASSERT(!g_state.geometry_pipeline.NeedIndexInput());
-                    g_state.geometry_pipeline.Setup(shader_engine);
-                    g_state.geometry_pipeline.SubmitVertex(output);
+                    ASSERT(!pica_state.geometry_pipeline.NeedIndexInput());
+                    pica_state.geometry_pipeline.Setup(shader_engine);
+                    pica_state.geometry_pipeline.SubmitVertex(output);
 
                     // TODO: If drawing after every immediate mode triangle kills performance,
                     // change it to flush triangles whenever a drawing config register changes
                     // See: https://github.com/citra-emu/citra/pull/2866#issuecomment-327011550
-                    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->DrawTriangles();
+                    rasterizer->DrawTriangles();
                     if (g_debug_context) {
                         g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
                                                  nullptr);
@@ -266,12 +271,12 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
     case PICA_REG_INDEX_WORKAROUND(pipeline.command_buffer.trigger[0], 0x23c):
     case PICA_REG_INDEX_WORKAROUND(pipeline.command_buffer.trigger[1], 0x23d): {
-        unsigned index =
+        const unsigned index =
             static_cast<unsigned>(id - PICA_REG_INDEX(pipeline.command_buffer.trigger[0]));
-        u32* head_ptr = (u32*)VideoCore::g_memory->GetPhysicalPointer(
-            regs.pipeline.command_buffer.GetPhysicalAddress(index));
-        g_state.cmd_list.head_ptr = g_state.cmd_list.current_ptr = head_ptr;
-        g_state.cmd_list.length = regs.pipeline.command_buffer.GetSize(index) / sizeof(u32);
+        u32* head_ptr = reinterpret_cast<u32*>(Core::System::GetInstance().Memory().GetPhysicalPointer(
+            regs.pipeline.command_buffer.GetPhysicalAddress(index)));
+        pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = head_ptr;
+        pica_state.cmd_list.length = regs.pipeline.command_buffer.GetSize(index) / sizeof(u32);
         break;
     }
 
@@ -286,12 +291,12 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         if (g_debug_context)
             g_debug_context->OnEvent(DebugContext::Event::IncomingPrimitiveBatch, nullptr);
 
-        PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = g_state.primitive_assembler;
+        const PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = pica_state.primitive_assembler;
 
-        bool accelerate_draw = Core::System::GetInstance().VideoCore().Settings().hw_shader_enabled && primitive_assembler.IsEmpty();
+        bool accelerate_draw = settings.hw_shader_enabled && primitive_assembler.IsEmpty();
 
         if (regs.pipeline.use_gs == PipelineRegs::UseGS::No) {
-            auto topology = primitive_assembler.GetTopology();
+            const auto topology = primitive_assembler.GetTopology();
             if (topology == PipelineRegs::TriangleTopology::Shader ||
                 topology == PipelineRegs::TriangleTopology::List) {
                 accelerate_draw = accelerate_draw && (regs.pipeline.num_vertices % 3) == 0;
@@ -303,15 +308,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             // this, so this is left unimplemented for now. Revisit this when an issue is found in
             // games.
         } else {
-            if (Core::System::GetInstance().VideoCore().Settings().hw_shader_accurate_gs) {
+            if (settings.hw_shader_accurate_gs) {
                 accelerate_draw = false;
             }
         }
 
-        bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
+        const bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
 
         if (accelerate_draw &&
-            Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->AccelerateDrawBatch(is_indexed)) {
+            rasterizer->AccelerateDrawBatch(is_indexed)) {
             if (g_debug_context) {
                 g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
             }
@@ -328,9 +333,9 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         // Load vertices
         const auto& index_info = regs.pipeline.index_array;
         const u8* index_address_8 =
-            VideoCore::g_memory->GetPhysicalPointer(base_address + index_info.offset);
+            Core::System::GetInstance().Memory().GetPhysicalPointer(base_address + index_info.offset);
         const u16* index_address_16 = reinterpret_cast<const u16*>(index_address_8);
-        bool index_u16 = index_info.format != 0;
+        const bool index_u16 = index_info.format != 0;
 
         if (g_debug_context && g_debug_context->recorder) {
             for (int i = 0; i < 3; ++i) {
@@ -338,11 +343,10 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 if (!texture.enabled)
                     continue;
 
-                u8* texture_data =
-                    VideoCore::g_memory->GetPhysicalPointer(texture.config.GetPhysicalAddress());
+                const u8* texture_data = Core::System::GetInstance().Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
                 g_debug_context->recorder->MemoryAccessed(
                     texture_data,
-                    Pica::TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width /
+                    TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width /
                         2 * texture.config.height,
                     texture.config.GetPhysicalAddress());
             }
@@ -363,29 +367,29 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         auto* shader_engine = Shader::GetEngine();
         Shader::UnitState shader_unit;
 
-        shader_engine->SetupBatch(g_state.vs, regs.vs.main_offset);
+        shader_engine->SetupBatch(pica_state.vs, regs.vs.main_offset);
 
-        g_state.geometry_pipeline.Reconfigure();
-        g_state.geometry_pipeline.Setup(shader_engine);
-        if (g_state.geometry_pipeline.NeedIndexInput())
+        pica_state.geometry_pipeline.Reconfigure();
+        pica_state.geometry_pipeline.Setup(shader_engine);
+        if (pica_state.geometry_pipeline.NeedIndexInput())
             ASSERT(is_indexed);
 
         for (unsigned int index = 0; index < regs.pipeline.num_vertices; ++index) {
             // Indexed rendering doesn't use the start offset
-            unsigned int vertex =
+            const unsigned int vertex =
                 is_indexed ? (index_u16 ? index_address_16[index] : index_address_8[index])
                            : (index + regs.pipeline.vertex_offset);
 
             bool vertex_cache_hit = false;
 
             if (is_indexed) {
-                if (g_state.geometry_pipeline.NeedIndexInput()) {
-                    g_state.geometry_pipeline.SubmitIndex(vertex);
+                if (pica_state.geometry_pipeline.NeedIndexInput()) {
+                    pica_state.geometry_pipeline.SubmitIndex(vertex);
                     continue;
                 }
 
-                if (g_debug_context && Pica::g_debug_context->recorder) {
-                    int size = index_u16 ? 2 : 1;
+                if (g_debug_context && g_debug_context->recorder) {
+                    const int size = index_u16 ? 2 : 1;
                     memory_accesses.AddAccess(base_address + index_info.offset + size * index,
                                               size);
                 }
@@ -407,9 +411,9 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
                 // Send to vertex shader
                 if (g_debug_context)
                     g_debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
-                                             (void*)&input);
+                                             reinterpret_cast<void*>(&input));
                 shader_unit.LoadInput(regs.vs, input);
-                shader_engine->Run(g_state.vs, shader_unit);
+                shader_engine->Run(pica_state.vs, shader_unit);
                 shader_unit.WriteOutput(regs.vs, vs_output);
 
                 if (is_indexed) {
@@ -421,15 +425,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             }
 
             // Send to geometry pipeline
-            g_state.geometry_pipeline.SubmitVertex(vs_output);
+            pica_state.geometry_pipeline.SubmitVertex(vs_output);
         }
 
         for (auto& range : memory_accesses.ranges) {
             g_debug_context->recorder->MemoryAccessed(
-                VideoCore::g_memory->GetPhysicalPointer(range.first), range.second, range.first);
+                Core::System::GetInstance().Memory().GetPhysicalPointer(range.first), range.second, range.first);
         }
 
-        Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->DrawTriangles();
+        rasterizer->DrawTriangles();
         if (g_debug_context) {
             g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
         }
@@ -438,16 +442,16 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     }
 
     case PICA_REG_INDEX(gs.bool_uniforms):
-        WriteUniformBoolReg(g_state.gs, g_state.regs.gs.bool_uniforms.Value());
+        WriteUniformBoolReg(pica_state.gs, pica_state.regs.gs.bool_uniforms.Value());
         break;
 
     case PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[0], 0x281):
     case PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[1], 0x282):
     case PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[2], 0x283):
     case PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[3], 0x284): {
-        unsigned index = (id - PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[0], 0x281));
-        auto values = regs.gs.int_uniforms[index];
-        WriteUniformIntReg(g_state.gs, index,
+        const unsigned index = (id - PICA_REG_INDEX_WORKAROUND(gs.int_uniforms[0], 0x281));
+        const auto values = regs.gs.int_uniforms[index];
+        WriteUniformIntReg(pica_state.gs, index,
                            Math::Vec4<u8>(values.x, values.y, values.z, values.w));
         break;
     }
@@ -460,7 +464,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(gs.uniform_setup.set_value[5], 0x296):
     case PICA_REG_INDEX_WORKAROUND(gs.uniform_setup.set_value[6], 0x297):
     case PICA_REG_INDEX_WORKAROUND(gs.uniform_setup.set_value[7], 0x298): {
-        WriteUniformFloatReg(g_state.regs.gs, g_state.gs, gs_float_regs_counter,
+        WriteUniformFloatReg(pica_state.regs.gs, pica_state.gs, gs_float_regs_counter,
                              gs_uniform_write_buffer, value);
         break;
     }
@@ -473,12 +477,12 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(gs.program.set_word[5], 0x2a1):
     case PICA_REG_INDEX_WORKAROUND(gs.program.set_word[6], 0x2a2):
     case PICA_REG_INDEX_WORKAROUND(gs.program.set_word[7], 0x2a3): {
-        u32& offset = g_state.regs.gs.program.offset;
+        u32& offset = pica_state.regs.gs.program.offset;
         if (offset >= 4096) {
             LOG_ERROR(HW_GPU, "Invalid GS program offset {}", offset);
         } else {
-            g_state.gs.program_code[offset] = value;
-            g_state.gs.MarkProgramCodeDirty();
+            pica_state.gs.program_code[offset] = value;
+            pica_state.gs.MarkProgramCodeDirty();
             offset++;
         }
         break;
@@ -492,12 +496,12 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(gs.swizzle_patterns.set_word[5], 0x2ab):
     case PICA_REG_INDEX_WORKAROUND(gs.swizzle_patterns.set_word[6], 0x2ac):
     case PICA_REG_INDEX_WORKAROUND(gs.swizzle_patterns.set_word[7], 0x2ad): {
-        u32& offset = g_state.regs.gs.swizzle_patterns.offset;
-        if (offset >= g_state.gs.swizzle_data.size()) {
+        u32& offset = pica_state.regs.gs.swizzle_patterns.offset;
+        if (offset >= pica_state.gs.swizzle_data.size()) {
             LOG_ERROR(HW_GPU, "Invalid GS swizzle pattern offset {}", offset);
         } else {
-            g_state.gs.swizzle_data[offset] = value;
-            g_state.gs.MarkSwizzleDataDirty();
+            pica_state.gs.swizzle_data[offset] = value;
+            pica_state.gs.MarkSwizzleDataDirty();
             offset++;
         }
         break;
@@ -505,7 +509,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
     case PICA_REG_INDEX(vs.bool_uniforms):
         // TODO (wwylele): does regs.pipeline.gs_unit_exclusive_configuration affect this?
-        WriteUniformBoolReg(g_state.vs, g_state.regs.vs.bool_uniforms.Value());
+        WriteUniformBoolReg(pica_state.vs, pica_state.regs.vs.bool_uniforms.Value());
         break;
 
     case PICA_REG_INDEX_WORKAROUND(vs.int_uniforms[0], 0x2b1):
@@ -513,9 +517,9 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.int_uniforms[2], 0x2b3):
     case PICA_REG_INDEX_WORKAROUND(vs.int_uniforms[3], 0x2b4): {
         // TODO (wwylele): does regs.pipeline.gs_unit_exclusive_configuration affect this?
-        unsigned index = (id - PICA_REG_INDEX_WORKAROUND(vs.int_uniforms[0], 0x2b1));
-        auto values = regs.vs.int_uniforms[index];
-        WriteUniformIntReg(g_state.vs, index,
+        const unsigned index = (id - PICA_REG_INDEX_WORKAROUND(vs.int_uniforms[0], 0x2b1));
+        const auto values = regs.vs.int_uniforms[index];
+        WriteUniformIntReg(pica_state.vs, index,
                            Math::Vec4<u8>(values.x, values.y, values.z, values.w));
         break;
     }
@@ -529,7 +533,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.uniform_setup.set_value[6], 0x2c7):
     case PICA_REG_INDEX_WORKAROUND(vs.uniform_setup.set_value[7], 0x2c8): {
         // TODO (wwylele): does regs.pipeline.gs_unit_exclusive_configuration affect this?
-        WriteUniformFloatReg(g_state.regs.vs, g_state.vs, vs_float_regs_counter,
+        WriteUniformFloatReg(pica_state.regs.vs, pica_state.vs, vs_float_regs_counter,
                              vs_uniform_write_buffer, value);
         break;
     }
@@ -542,15 +546,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.program.set_word[5], 0x2d1):
     case PICA_REG_INDEX_WORKAROUND(vs.program.set_word[6], 0x2d2):
     case PICA_REG_INDEX_WORKAROUND(vs.program.set_word[7], 0x2d3): {
-        u32& offset = g_state.regs.vs.program.offset;
+        u32& offset = pica_state.regs.vs.program.offset;
         if (offset >= 512) {
             LOG_ERROR(HW_GPU, "Invalid VS program offset {}", offset);
         } else {
-            g_state.vs.program_code[offset] = value;
-            g_state.vs.MarkProgramCodeDirty();
-            if (!g_state.regs.pipeline.gs_unit_exclusive_configuration) {
-                g_state.gs.program_code[offset] = value;
-                g_state.gs.MarkProgramCodeDirty();
+            pica_state.vs.program_code[offset] = value;
+            pica_state.vs.MarkProgramCodeDirty();
+            if (!pica_state.regs.pipeline.gs_unit_exclusive_configuration) {
+                pica_state.gs.program_code[offset] = value;
+                pica_state.gs.MarkProgramCodeDirty();
             }
             offset++;
         }
@@ -565,15 +569,15 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(vs.swizzle_patterns.set_word[5], 0x2db):
     case PICA_REG_INDEX_WORKAROUND(vs.swizzle_patterns.set_word[6], 0x2dc):
     case PICA_REG_INDEX_WORKAROUND(vs.swizzle_patterns.set_word[7], 0x2dd): {
-        u32& offset = g_state.regs.vs.swizzle_patterns.offset;
-        if (offset >= g_state.vs.swizzle_data.size()) {
+        u32& offset = pica_state.regs.vs.swizzle_patterns.offset;
+        if (offset >= pica_state.vs.swizzle_data.size()) {
             LOG_ERROR(HW_GPU, "Invalid VS swizzle pattern offset {}", offset);
         } else {
-            g_state.vs.swizzle_data[offset] = value;
-            g_state.vs.MarkSwizzleDataDirty();
-            if (!g_state.regs.pipeline.gs_unit_exclusive_configuration) {
-                g_state.gs.swizzle_data[offset] = value;
-                g_state.gs.MarkSwizzleDataDirty();
+            pica_state.vs.swizzle_data[offset] = value;
+            pica_state.vs.MarkSwizzleDataDirty();
+            if (!pica_state.regs.pipeline.gs_unit_exclusive_configuration) {
+                pica_state.gs.swizzle_data[offset] = value;
+                pica_state.gs.MarkSwizzleDataDirty();
             }
             offset++;
         }
@@ -592,7 +596,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
 
         ASSERT_MSG(lut_config.index < 256, "lut_config.index exceeded maximum value of 255!");
 
-        g_state.lighting.luts[lut_config.type][lut_config.index].raw = value;
+        pica_state.lighting.luts[lut_config.type][lut_config.index].raw = value;
         lut_config.index.Assign(lut_config.index + 1);
         break;
     }
@@ -605,7 +609,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(texturing.fog_lut_data[5], 0xed):
     case PICA_REG_INDEX_WORKAROUND(texturing.fog_lut_data[6], 0xee):
     case PICA_REG_INDEX_WORKAROUND(texturing.fog_lut_data[7], 0xef): {
-        g_state.fog.lut[regs.texturing.fog_lut_offset % 128].raw = value;
+        pica_state.fog.lut[regs.texturing.fog_lut_offset % 128].raw = value;
         regs.texturing.fog_lut_offset.Assign(regs.texturing.fog_lut_offset + 1);
         break;
     }
@@ -619,7 +623,7 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(texturing.proctex_lut_data[6], 0xb6):
     case PICA_REG_INDEX_WORKAROUND(texturing.proctex_lut_data[7], 0xb7): {
         auto& index = regs.texturing.proctex_lut_config.index;
-        auto& pt = g_state.proctex;
+        auto& pt = pica_state.proctex;
 
         switch (regs.texturing.proctex_lut_config.ref_table.Value()) {
         case TexturingRegs::ProcTexLutTable::Noise:
@@ -645,31 +649,33 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
         break;
     }
 
-    Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->NotifyPicaRegisterChanged(id);
+    rasterizer->NotifyPicaRegisterChanged(id);
 
     if (g_debug_context)
         g_debug_context->OnEvent(DebugContext::Event::PicaCommandProcessed,
                                  reinterpret_cast<void*>(&id));
 }
 
-void ProcessCommandList(const u32* list, u32 size) {
-    g_state.cmd_list.head_ptr = g_state.cmd_list.current_ptr = list;
-    g_state.cmd_list.length = size / sizeof(u32);
+void ProcessCommandList(const u32* list, const u32 size) {
+    auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
 
-    while (g_state.cmd_list.current_ptr < g_state.cmd_list.head_ptr + g_state.cmd_list.length) {
+    pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = list;
+    pica_state.cmd_list.length = size / sizeof(u32);
+
+    while (pica_state.cmd_list.current_ptr < pica_state.cmd_list.head_ptr + pica_state.cmd_list.length) {
 
         // Align read pointer to 8 bytes
-        if ((g_state.cmd_list.head_ptr - g_state.cmd_list.current_ptr) % 2 != 0)
-            ++g_state.cmd_list.current_ptr;
+        if ((pica_state.cmd_list.head_ptr - pica_state.cmd_list.current_ptr) % 2 != 0)
+            ++pica_state.cmd_list.current_ptr;
 
-        u32 value = *g_state.cmd_list.current_ptr++;
-        const CommandHeader header = {*g_state.cmd_list.current_ptr++};
+        const u32 value = *pica_state.cmd_list.current_ptr++;
+        const CommandHeader header = {*pica_state.cmd_list.current_ptr++};
 
         WritePicaReg(header.cmd_id, value, header.parameter_mask);
 
         for (unsigned i = 0; i < header.extra_data_length; ++i) {
-            u32 cmd = header.cmd_id + (header.group_commands ? i + 1 : 0);
-            WritePicaReg(cmd, *g_state.cmd_list.current_ptr++, header.parameter_mask);
+            const u32 cmd = header.cmd_id + (header.group_commands ? i + 1 : 0);
+            WritePicaReg(cmd, *pica_state.cmd_list.current_ptr++, header.parameter_mask);
         }
     }
 }

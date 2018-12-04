@@ -17,7 +17,6 @@ namespace Core {
 class System;
 }
 
-
 namespace HW::LCD {
 
 struct Regs {

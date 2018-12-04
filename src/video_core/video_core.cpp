@@ -17,10 +17,13 @@
 
 namespace VideoCore {
 
-VideoCore::VideoCore(Core::System& system) : system(system) {};
+VideoCore::VideoCore(Core::System& system) : system(system) {}
+VideoCore::~VideoCore() {}
 
 Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
-    Pica::Init();
+    pica = std::make_unique<Pica::Pica>();
+    pica->Init();
+
     renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);
     Core::System::ResultStatus result = renderer->Init();
 
@@ -34,7 +37,7 @@ Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
 }
 
 Core::System::ResultStatus VideoCore::Shutdown() {
-    Pica::Shutdown();
+    pica->Shutdown();
 
     renderer.reset();
 
@@ -89,6 +92,14 @@ VideoCoreSettings& VideoCore::Settings() {
 
 const VideoCoreSettings& VideoCore::Settings() const {
     return settings;
+};
+
+Pica::Pica& VideoCore::Pica() {
+    return *pica;
+};
+
+const Pica::Pica& VideoCore::Pica() const {
+    return *pica;
 };
 
 } // namespace VideoCore

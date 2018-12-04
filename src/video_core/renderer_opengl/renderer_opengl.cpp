@@ -102,11 +102,11 @@ RendererOpenGL::~RendererOpenGL() = default;
 /// Swap buffers (render frame)
 void RendererOpenGL::SwapBuffers() {
     // Maintain the rasterizer's state as a priority
-    OpenGLState prev_state = OpenGLState::GetCurState();
+    const OpenGLState prev_state = OpenGLState::GetCurState();
     state.Apply();
 
     for (int i : {0, 1, 2}) {
-        int fb_id = i == 2 ? 1 : 0;
+        const int fb_id = i == 2 ? 1 : 0;
         const auto& framebuffer = system.HardwareManager().Gpu().Regs().framebuffer_config[fb_id];
 
         // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
@@ -212,8 +212,8 @@ void RendererOpenGL::LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& frameb
               framebuffer.stride * framebuffer.height, framebuffer_addr, (int)framebuffer.width,
               (int)framebuffer.height, (int)framebuffer.format);
 
-    int bpp = HW::GPU::Gpu::BytesPerPixel(framebuffer.color_format);
-    std::size_t pixel_stride = framebuffer.stride / bpp;
+    const int bpp = HW::GPU::Gpu::BytesPerPixel(framebuffer.color_format);
+    const std::size_t pixel_stride = framebuffer.stride / bpp;
 
     // OpenGL only supports specifying a stride in units of pixels, not bytes, unfortunately
     ASSERT(pixel_stride * bpp == framebuffer.stride);
@@ -335,7 +335,7 @@ void RendererOpenGL::InitOpenGLObjects() {
 
 void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
                                                  const HW::GPU::FramebufferConfig& framebuffer) {
-    HW::GPU::PixelFormat format = framebuffer.color_format;
+    const HW::GPU::PixelFormat format = framebuffer.color_format;
     GLint internal_format;
 
     texture.format = format;
@@ -398,7 +398,7 @@ void RendererOpenGL::ConfigureFramebufferTexture(TextureInfo& texture,
  */
 void RendererOpenGL::DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y,
                                              float w, float h) {
-    auto& texcoords = screen_info.display_texcoords;
+    const auto& texcoords = screen_info.display_texcoords;
 
     std::array<ScreenRectVertex, 4> vertices = {{
         ScreenRectVertex(x, y, texcoords.bottom, texcoords.left),
@@ -434,8 +434,8 @@ void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Set projection matrix
-    std::array<GLfloat, 3 * 2> ortho_matrix =
-        MakeOrthographicMatrix((float)layout.width, (float)layout.height);
+    const std::array<GLfloat, 3 * 2> ortho_matrix =
+        MakeOrthographicMatrix(static_cast<float>(layout.width), static_cast<float>(layout.height));
     glUniformMatrix3x2fv(uniform_modelview_matrix, 1, GL_FALSE, ortho_matrix.data());
 
     // Bind texture in Texture Unit 0
@@ -444,31 +444,31 @@ void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
 
     if (layout.top_screen_enabled) {
         if (!Settings::values.toggle_3d) {
-            DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left, (float)top_screen.top,
-                                    (float)top_screen.GetWidth(), (float)top_screen.GetHeight());
+            DrawSingleScreenRotated(screen_infos[0], static_cast<float>(top_screen.left), static_cast<float>(top_screen.top),
+                                    static_cast<float>(top_screen.GetWidth()), static_cast<float>(top_screen.GetHeight()));
         } else {
-            DrawSingleScreenRotated(screen_infos[0], (float)top_screen.left / 2,
-                                    (float)top_screen.top, (float)top_screen.GetWidth() / 2,
-                                    (float)top_screen.GetHeight());
+            DrawSingleScreenRotated(screen_infos[0], static_cast<float>(top_screen.left) / 2,
+                                    static_cast<float>(top_screen.top), static_cast<float>(top_screen.GetWidth()) / 2,
+                                    static_cast<float>(top_screen.GetHeight()));
             DrawSingleScreenRotated(screen_infos[1],
-                                    ((float)top_screen.left / 2) + ((float)layout.width / 2),
-                                    (float)top_screen.top, (float)top_screen.GetWidth() / 2,
-                                    (float)top_screen.GetHeight());
+                                    (static_cast<float>(top_screen.left) / 2) + (static_cast<float>(layout.width) / 2),
+                                    static_cast<float>(top_screen.top), static_cast<float>(top_screen.GetWidth()) / 2,
+                                    static_cast<float>(top_screen.GetHeight()));
         }
     }
     if (layout.bottom_screen_enabled) {
         if (!Settings::values.toggle_3d) {
-            DrawSingleScreenRotated(screen_infos[2], (float)bottom_screen.left,
-                                    (float)bottom_screen.top, (float)bottom_screen.GetWidth(),
-                                    (float)bottom_screen.GetHeight());
+            DrawSingleScreenRotated(screen_infos[2], static_cast<float>(bottom_screen.left),
+                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()),
+                                    static_cast<float>(bottom_screen.GetHeight()));
         } else {
-            DrawSingleScreenRotated(screen_infos[2], (float)bottom_screen.left / 2,
-                                    (float)bottom_screen.top, (float)bottom_screen.GetWidth() / 2,
-                                    (float)bottom_screen.GetHeight());
+            DrawSingleScreenRotated(screen_infos[2], static_cast<float>(bottom_screen.left / 2),
+                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()) / 2,
+                                    static_cast<float>(bottom_screen.GetHeight()));
             DrawSingleScreenRotated(screen_infos[2],
-                                    ((float)bottom_screen.left / 2) + ((float)layout.width / 2),
-                                    (float)bottom_screen.top, (float)bottom_screen.GetWidth() / 2,
-                                    (float)bottom_screen.GetHeight());
+                                    (static_cast<float>(bottom_screen.left) / 2) + (static_cast<float>(layout.width) / 2),
+                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()) / 2,
+                                    static_cast<float>(bottom_screen.GetHeight()));
         }
     }
 

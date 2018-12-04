@@ -3,22 +3,31 @@
 // Refer to the license.txt file included.
 
 #include <cstring>
+#include "core/core.h"
 #include "video_core/geometry_pipeline.h"
 #include "video_core/pica.h"
-#include "video_core/pica_state.h"
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
 
 namespace Pica {
 
-State g_state;
+Pica::Pica() {}
+Pica::~Pica() {}
 
-void Init() {
-    g_state.Reset();
+void Pica::Init() {
+    state.Reset();
 }
 
-void Shutdown() {
+void Pica::Shutdown() {
     Shader::Shutdown();
+}
+
+::Pica::State& Pica::State() {
+    return state;
+}
+
+const ::Pica::State& Pica::State() const {
+    return state;
 }
 
 template <typename T>
@@ -28,10 +37,11 @@ void Zero(T& o) {
 
 State::State() : geometry_pipeline(*this) {
     auto SubmitVertex = [this](const Shader::AttributeBuffer& vertex) {
-        using Pica::Shader::OutputVertex;
+        using Shader::OutputVertex;
         auto AddTriangle = [this](const OutputVertex& v0, const OutputVertex& v1,
                                   const OutputVertex& v2) {
-            Core::System::GetInstance().VideoCore().Renderer().Rasterizer()->AddTriangle(v0, v1, v2);
+            const auto rasterizer = Core::System::GetInstance().VideoCore().Renderer().Rasterizer();
+            rasterizer->AddTriangle(v0, v1, v2);
         };
         primitive_assembler.SubmitVertex(
             Shader::OutputVertex::FromAttributeBuffer(regs.rasterizer, vertex), AddTriangle);
@@ -39,8 +49,8 @@ State::State() : geometry_pipeline(*this) {
 
     auto SetWinding = [this]() { primitive_assembler.SetWinding(); };
 
-    g_state.gs_unit.SetVertexHandler(SubmitVertex, SetWinding);
-    g_state.geometry_pipeline.SetVertexHandler(SubmitVertex);
+    gs_unit.SetVertexHandler(SubmitVertex, SetWinding);
+    geometry_pipeline.SetVertexHandler(SubmitVertex);
 }
 
 void State::Reset() {

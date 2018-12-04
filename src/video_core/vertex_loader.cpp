@@ -6,8 +6,10 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "common/vector_math.h"
+#include "core/core.h"
 #include "core/memory.h"
 #include "video_core/debug_utils/debug_utils.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
 #include "video_core/regs_pipeline.h"
@@ -82,7 +84,7 @@ void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
             u32 source_addr =
                 base_address + vertex_attribute_sources[i] + vertex_attribute_strides[i] * vertex;
 
-            if (g_debug_context && Pica::g_debug_context->recorder) {
+            if (g_debug_context && g_debug_context->recorder) {
                 memory_accesses.AddAccess(
                     source_addr,
                     vertex_attribute_elements[i] *
@@ -146,7 +148,8 @@ void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
                       input.attr[i][2].ToFloat32(), input.attr[i][3].ToFloat32());
         } else if (vertex_attribute_is_default[i]) {
             // Load the default attribute if we're configured to do so
-            input.attr[i] = g_state.input_default_attributes.attr[i];
+            const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+            input.attr[i] = pica_state.input_default_attributes.attr[i];
             LOG_TRACE(
                 HW_GPU,
                 "Loaded default attribute {:x} for vertex {:x} (index {:x}): ({}, {}, {}, {})", i,

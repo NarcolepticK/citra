@@ -19,7 +19,7 @@ struct Vertex : Shader::OutputVertex {
     // Linear interpolation
     // factor: 0=this, 1=vtx
     // Note: This function cannot be called after perspective divide
-    void Lerp(float24 factor, const Vertex& vtx) {
+    void Lerp(const float24 factor, const Vertex& vtx) {
         pos = pos * factor + vtx.pos * (float24::FromFloat32(1) - factor);
         quat = quat * factor + vtx.quat * (float24::FromFloat32(1) - factor);
         color = color * factor + vtx.color * (float24::FromFloat32(1) - factor);
@@ -33,7 +33,7 @@ struct Vertex : Shader::OutputVertex {
     // Linear interpolation
     // factor: 0=v0, 1=v1
     // Note: This function cannot be called after perspective divide
-    static Vertex Lerp(float24 factor, const Vertex& v0, const Vertex& v1) {
+    static Vertex Lerp(const float24 factor, const Vertex& v0, const Vertex& v1) {
         Vertex ret = v0;
         ret.Lerp(factor, v1);
         return ret;

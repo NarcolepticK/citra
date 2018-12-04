@@ -20,7 +20,9 @@
 #include "core/hw/lcd.h"
 #include "core/tracer/recorder.h"
 #include "nihstro/float24.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
+#include "video_core/video_core.h"
 
 GraphicsTracingWidget::GraphicsTracingWidget(std::shared_ptr<Pica::DebugContext> debug_context,
                                              QWidget* parent)
@@ -64,8 +66,10 @@ void GraphicsTracingWidget::StartRecording() {
     if (!context)
         return;
 
-    auto shader_binary = Pica::g_state.vs.program_code;
-    auto swizzle_data = Pica::g_state.vs.swizzle_data;
+    const auto& hw_manager = Core::System::GetInstance().HardwareManager();
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto shader_binary = pica_state.vs.program_code;
+    const auto swizzle_data = pica_state.vs.swizzle_data;
 
     // Encode floating point numbers to 24-bit values
     // TODO: Drop this explicit conversion once we store float24 values bit-correctly internally.
@@ -73,7 +77,7 @@ void GraphicsTracingWidget::StartRecording() {
     for (unsigned i = 0; i < 16; ++i) {
         for (unsigned comp = 0; comp < 3; ++comp) {
             default_attributes[4 * i + comp] = nihstro::to_float24(
-                Pica::g_state.input_default_attributes.attr[i][comp].ToFloat32());
+                pica_state.input_default_attributes.attr[i][comp].ToFloat32());
         }
     }
 
@@ -81,14 +85,14 @@ void GraphicsTracingWidget::StartRecording() {
     for (unsigned i = 0; i < 96; ++i)
         for (unsigned comp = 0; comp < 3; ++comp)
             vs_float_uniforms[4 * i + comp] =
-                nihstro::to_float24(Pica::g_state.vs.uniforms.f[i][comp].ToFloat32());
+                nihstro::to_float24(pica_state.vs.uniforms.f[i][comp].ToFloat32());
 
     CiTrace::Recorder::InitialState state;
-    std::copy_n((u32*)&Core::System::GetInstance().HardwareManager().Gpu().Regs(), sizeof(HW::GPU::Regs) / sizeof(u32),
+    std::copy_n((u32*)&hw_manager.Gpu().Regs(), sizeof(HW::GPU::Regs) / sizeof(u32),
                 std::back_inserter(state.gpu_registers));
-    std::copy_n((u32*)&Core::System::GetInstance().HardwareManager().Lcd().Regs(), sizeof(HW::LCD::Regs) / sizeof(u32),
+    std::copy_n((u32*)&hw_manager.Lcd().Regs(), sizeof(HW::LCD::Regs) / sizeof(u32),
                 std::back_inserter(state.lcd_registers));
-    std::copy_n((u32*)&Pica::g_state.regs, sizeof(Pica::g_state.regs) / sizeof(u32),
+    std::copy_n((u32*)&pica_state.regs, sizeof(pica_state.regs) / sizeof(u32),
                 std::back_inserter(state.pica_registers));
     boost::copy(default_attributes, std::back_inserter(state.default_attributes));
     boost::copy(shader_binary, std::back_inserter(state.vs_program_binary));

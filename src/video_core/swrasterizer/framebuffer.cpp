@@ -8,8 +8,10 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "common/vector_math.h"
+#include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/regs_framebuffer.h"
 #include "video_core/swrasterizer/framebuffer.h"
@@ -20,7 +22,8 @@ namespace Pica {
 namespace Rasterizer {
 
 void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();
 
     // Similarly to textures, the render framebuffer is laid out from bottom to top, too.
@@ -28,11 +31,11 @@ void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel =
+    const u32 bytes_per_pixel =
         HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
-    u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
+    const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
                      coarse_y * framebuffer.width * bytes_per_pixel;
-    u8* dst_pixel = VideoCore::g_memory->GetPhysicalPointer(addr) + dst_offset;
+    u8* dst_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + dst_offset;
 
     switch (framebuffer.color_format) {
     case FramebufferRegs::ColorFormat::RGBA8:
@@ -63,17 +66,18 @@ void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
 }
 
 const Math::Vec4<u8> GetPixel(int x, int y) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel =
+    const u32 bytes_per_pixel =
         HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
-    u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
+    const u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
                      coarse_y * framebuffer.width * bytes_per_pixel;
-    u8* src_pixel = VideoCore::g_memory->GetPhysicalPointer(addr) + src_offset;
+    const u8* src_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + src_offset;
 
     switch (framebuffer.color_format) {
     case FramebufferRegs::ColorFormat::RGBA8:
@@ -101,18 +105,19 @@ const Math::Vec4<u8> GetPixel(int x, int y) {
 }
 
 u32 GetDepth(int x, int y) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
-    u8* depth_buffer = VideoCore::g_memory->GetPhysicalPointer(addr);
+    const u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
-    u32 stride = framebuffer.width * bytes_per_pixel;
+    const u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
+    const u32 stride = framebuffer.width * bytes_per_pixel;
 
-    u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
-    u8* src_pixel = depth_buffer + src_offset;
+    const u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
+    const u8* src_pixel = depth_buffer + src_offset;
 
     switch (framebuffer.depth_format) {
     case FramebufferRegs::DepthFormat::D16:
@@ -130,18 +135,19 @@ u32 GetDepth(int x, int y) {
 }
 
 u8 GetStencil(int x, int y) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
-    u8* depth_buffer = VideoCore::g_memory->GetPhysicalPointer(addr);
+    const u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel = Pica::FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
-    u32 stride = framebuffer.width * bytes_per_pixel;
+    const u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
+    const u32 stride = framebuffer.width * bytes_per_pixel;
 
-    u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
-    u8* src_pixel = depth_buffer + src_offset;
+    const u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
+    const u8* src_pixel = depth_buffer + src_offset;
 
     switch (framebuffer.depth_format) {
     case FramebufferRegs::DepthFormat::D24S8:
@@ -157,17 +163,18 @@ u8 GetStencil(int x, int y) {
 }
 
 void SetDepth(int x, int y, u32 value) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
-    u8* depth_buffer = VideoCore::g_memory->GetPhysicalPointer(addr);
+    u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
-    u32 stride = framebuffer.width * bytes_per_pixel;
+    const u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
+    const u32 stride = framebuffer.width * bytes_per_pixel;
 
-    u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
+    const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
     u8* dst_pixel = depth_buffer + dst_offset;
 
     switch (framebuffer.depth_format) {
@@ -192,26 +199,27 @@ void SetDepth(int x, int y, u32 value) {
 }
 
 void SetStencil(int x, int y, u8 value) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
-    u8* depth_buffer = VideoCore::g_memory->GetPhysicalPointer(addr);
+    u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel = Pica::FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
-    u32 stride = framebuffer.width * bytes_per_pixel;
+    const u32 bytes_per_pixel = FramebufferRegs::BytesPerDepthPixel(framebuffer.depth_format);
+    const u32 stride = framebuffer.width * bytes_per_pixel;
 
-    u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
+    const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) + coarse_y * stride;
     u8* dst_pixel = depth_buffer + dst_offset;
 
     switch (framebuffer.depth_format) {
-    case Pica::FramebufferRegs::DepthFormat::D16:
-    case Pica::FramebufferRegs::DepthFormat::D24:
+    case FramebufferRegs::DepthFormat::D16:
+    case FramebufferRegs::DepthFormat::D24:
         // Nothing to do
         break;
 
-    case Pica::FramebufferRegs::DepthFormat::D24S8:
+    case FramebufferRegs::DepthFormat::D24S8:
         Color::EncodeX24S8(value, dst_pixel);
         break;
 
@@ -252,7 +260,7 @@ u8 PerformStencilAction(FramebufferRegs::StencilAction action, u8 old_stencil, u
         return old_stencil - 1;
 
     default:
-        LOG_CRITICAL(HW_GPU, "Unknown stencil action {:x}", (int)action);
+        LOG_CRITICAL(HW_GPU, "Unknown stencil action {:x}", static_cast<int>(action));
         UNIMPLEMENTED();
         return 0;
     }
@@ -263,8 +271,8 @@ Math::Vec4<u8> EvaluateBlendEquation(const Math::Vec4<u8>& src, const Math::Vec4
                                      FramebufferRegs::BlendEquation equation) {
     Math::Vec4<int> result;
 
-    auto src_result = (src * srcfactor).Cast<int>();
-    auto dst_result = (dest * destfactor).Cast<int>();
+    const auto src_result = (src * srcfactor).Cast<int>();
+    const auto dst_result = (dest * destfactor).Cast<int>();
 
     switch (equation) {
     case FramebufferRegs::BlendEquation::Add:
@@ -364,41 +372,42 @@ static const Math::Vec2<u32> DecodeD24S8Shadow(const u8* bytes) {
     return {static_cast<u32>((bytes[0] << 16) | (bytes[1] << 8) | bytes[2]), bytes[3]};
 }
 
-static void EncodeD24X8Shadow(u32 depth, u8* bytes) {
+static void EncodeD24X8Shadow(const u32 depth, u8* bytes) {
     bytes[2] = depth & 0xFF;
     bytes[1] = (depth >> 8) & 0xFF;
     bytes[0] = (depth >> 16) & 0xFF;
 }
 
-static void EncodeX24S8Shadow(u8 stencil, u8* bytes) {
+static void EncodeX24S8Shadow(const u8 stencil, u8* bytes) {
     bytes[3] = stencil;
 }
 
 void DrawShadowMapPixel(int x, int y, u32 depth, u8 stencil) {
-    const auto& framebuffer = g_state.regs.framebuffer.framebuffer;
-    const auto& shadow = g_state.regs.framebuffer.shadow;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
+    const auto& shadow = pica_state.regs.framebuffer.shadow;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();
 
     y = framebuffer.height - y;
 
     const u32 coarse_y = y & ~7;
-    u32 bytes_per_pixel = 4;
-    u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
+    const u32 bytes_per_pixel = 4;
+    const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
                      coarse_y * framebuffer.width * bytes_per_pixel;
-    u8* dst_pixel = VideoCore::g_memory->GetPhysicalPointer(addr) + dst_offset;
+    u8* dst_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + dst_offset;
 
-    auto ref = DecodeD24S8Shadow(dst_pixel);
-    u32 ref_z = ref.x;
-    u32 ref_s = ref.y;
+    const auto ref = DecodeD24S8Shadow(dst_pixel);
+    const u32 ref_z = ref.x;
+    const u32 ref_s = ref.y;
 
     if (depth < ref_z) {
         if (stencil == 0) {
             EncodeD24X8Shadow(depth, dst_pixel);
         } else {
-            float16 constant = float16::FromRaw(shadow.constant);
-            float16 linear = float16::FromRaw(shadow.linear);
-            float16 x = float16::FromFloat32(static_cast<float>(depth) / ref_z);
-            float16 stencil_new = float16::FromFloat32(stencil) / (constant + linear * x);
+            const float16 constant = float16::FromRaw(shadow.constant);
+            const float16 linear = float16::FromRaw(shadow.linear);
+            const float16 x = float16::FromFloat32(static_cast<float>(depth) / ref_z);
+            const float16 stencil_new = float16::FromFloat32(stencil) / (constant + linear * x);
             stencil = static_cast<u8>(std::clamp(stencil_new.ToFloat32(), 0.0f, 255.0f));
 
             if (stencil < ref_s)

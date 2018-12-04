@@ -24,6 +24,8 @@
 #include "common/vector_math.h"
 #include "core/frontend/emu_window.h"
 #include "core/memory.h"
+#include "core/settings.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_rasterizer_cache.h"
@@ -134,7 +136,7 @@ static void MortonCopy(u32 stride, u32 height, u8* gl_buffer, PAddr base, PAddr 
         }
     };
 
-    u8* tile_buffer = VideoCore::g_memory->GetPhysicalPointer(start);
+    u8* tile_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(start);
 
     if (start < aligned_start && !morton_to_gl) {
         std::array<u8, tile_size> tmp_buf;
@@ -1349,13 +1351,14 @@ const CachedTextureCube& RasterizerCacheOpenGL::GetTextureCube(const TextureCube
 
 SurfaceSurfaceRect_Tuple RasterizerCacheOpenGL::GetFramebufferSurfaces(
     bool using_color_fb, bool using_depth_fb, const MathUtil::Rectangle<s32>& viewport_rect) {
-    const auto& regs = Pica::g_state.regs;
+    const auto& regs = Core::System::GetInstance().VideoCore().Pica().State().regs;
     const auto& config = regs.framebuffer.framebuffer;
 
     // update resolution_scale_factor and reset cache if changed
-    static u16 resolution_scale_factor = VideoCore::GetResolutionScaleFactor();
-    if (resolution_scale_factor != VideoCore::GetResolutionScaleFactor()) {
-        resolution_scale_factor = VideoCore::GetResolutionScaleFactor();
+    const auto& video_core = Core::System::GetInstance().VideoCore();
+    static u16 resolution_scale_factor = video_core.GetResolutionScaleFactor();
+    if (resolution_scale_factor != video_core.GetResolutionScaleFactor()) {
+        resolution_scale_factor = video_core.GetResolutionScaleFactor();
         FlushAll();
         while (!surface_cache.empty())
             UnregisterSurface(*surface_cache.begin()->second.begin());
@@ -1718,10 +1721,10 @@ void RasterizerCacheOpenGL::UpdatePagesCachedCount(PAddr addr, u32 size, int del
         const u32 interval_size = interval_end_addr - interval_start_addr;
 
         if (delta > 0 && count == delta)
-            VideoCore::g_memory->RasterizerMarkRegionCached(interval_start_addr, interval_size,
+            Core::System::GetInstance().Memory().RasterizerMarkRegionCached(interval_start_addr, interval_size,
                                                             true);
         else if (delta < 0 && count == -delta)
-            VideoCore::g_memory->RasterizerMarkRegionCached(interval_start_addr, interval_size,
+            Core::System::GetInstance().Memory().RasterizerMarkRegionCached(interval_start_addr, interval_size,
                                                             false);
         else
             ASSERT(count >= 0);

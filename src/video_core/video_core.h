@@ -12,6 +12,10 @@
 
 class EmuWindow;
 
+namespace Pica {
+class Pica;
+} // namespace Pica
+
 namespace Service {
 namespace GSP {
 class GSP_GPU;
@@ -38,7 +42,7 @@ struct VideoCoreSettings {
 class VideoCore {
 public:
     explicit VideoCore(Core::System& system);
-    ~VideoCore() = default;
+    ~VideoCore();
 
     Core::System::ResultStatus Init(EmuWindow& emu_window);
     Core::System::ResultStatus Shutdown();
@@ -57,9 +61,13 @@ public:
 
     VideoCoreSettings& Settings();
     const VideoCoreSettings& Settings() const;
+
+    Pica::Pica& Pica();
+    const Pica::Pica& Pica() const;
 private:
     Core::System& system;
     VideoCoreSettings settings;
     std::unique_ptr<RendererBase> renderer;
+    std::unique_ptr<Pica::Pica> pica;
 };
 } // namespace VideoCore

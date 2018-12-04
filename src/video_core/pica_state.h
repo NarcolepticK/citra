@@ -154,6 +154,4 @@ struct State {
     PrimitiveAssembler<Shader::OutputVertex> primitive_assembler;
 };
 
-extern State g_state; ///< Current Pica state
-
 } // namespace Pica

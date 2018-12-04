@@ -31,7 +31,7 @@ namespace Pica {
 //       For lack of better alternatives, we currently hardcode the offsets when constant
 //       expressions are needed via PICA_REG_INDEX_WORKAROUND (on sane compilers, static_asserts
 //       will then make sure the offsets indeed match the automatically calculated ones).
-#define PICA_REG_INDEX(field_name) (offsetof(Pica::Regs, field_name) / sizeof(u32))
+#define PICA_REG_INDEX(field_name) (offsetof(::Pica::Regs, field_name) / sizeof(u32))
 #if defined(_MSC_VER)
 #define PICA_REG_INDEX_WORKAROUND(field_name, backup_workaround_index) (backup_workaround_index)
 #else

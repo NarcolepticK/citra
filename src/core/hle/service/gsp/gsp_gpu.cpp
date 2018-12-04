@@ -464,7 +464,7 @@ PAddr GSP_GPU::VirtualToPhysicalAddress(VAddr addr) {
 
 void GSP_GPU::WriteGPURegister(u32 id, u32 data) {
         system.HardwareManager().Gpu().Write32(0x1EF00000 + 4 * id, data);
-    };
+};
 
 /**
  * Writes a single GSP GPU hardware registers with a single u32 value

@@ -17,11 +17,13 @@
 #include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/regs_framebuffer.h"
 #include "video_core/regs_texturing.h"
 #include "video_core/texture/texture_decode.h"
 #include "video_core/utils.h"
+#include "video_core/video_core.h"
 
 SurfacePicture::SurfacePicture(QWidget* parent, GraphicsSurfaceWidget* surface_widget_)
     : QLabel(parent), surface_widget(surface_widget_) {}
@@ -415,12 +417,12 @@ void GraphicsSurfaceWidget::Pick(int x, int y) {
 void GraphicsSurfaceWidget::OnUpdate() {
     QPixmap pixmap;
 
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     switch (surface_source) {
     case Source::ColorBuffer: {
         // TODO: Store a reference to the registers in the debug context instead of accessing them
         // directly...
-
-        const auto& framebuffer = Pica::g_state.regs.framebuffer.framebuffer;
 
         surface_address = framebuffer.GetColorBufferPhysicalAddress();
         surface_width = framebuffer.GetWidth();
@@ -456,8 +458,6 @@ void GraphicsSurfaceWidget::OnUpdate() {
     }
 
     case Source::DepthBuffer: {
-        const auto& framebuffer = Pica::g_state.regs.framebuffer.framebuffer;
-
         surface_address = framebuffer.GetDepthBufferPhysicalAddress();
         surface_width = framebuffer.GetWidth();
         surface_height = framebuffer.GetHeight();
@@ -484,8 +484,6 @@ void GraphicsSurfaceWidget::OnUpdate() {
     }
 
     case Source::StencilBuffer: {
-        const auto& framebuffer = Pica::g_state.regs.framebuffer.framebuffer;
-
         surface_address = framebuffer.GetDepthBufferPhysicalAddress();
         surface_width = framebuffer.GetWidth();
         surface_height = framebuffer.GetHeight();
@@ -518,7 +516,7 @@ void GraphicsSurfaceWidget::OnUpdate() {
             break;
         }
 
-        const auto texture = Pica::g_state.regs.texturing.GetTextures()[texture_index];
+        const auto texture = pica_state.regs.texturing.GetTextures()[texture_index];
         auto info = Pica::Texture::TextureInfo::FromPicaRegister(texture.config, texture.format);
 
         surface_address = info.physical_address;

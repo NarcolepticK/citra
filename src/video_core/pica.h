@@ -4,13 +4,24 @@
 
 #pragma once
 
+#include "video_core/pica_state.h"
 #include "video_core/regs_texturing.h"
+
 namespace Pica {
 
-/// Initialize Pica state
-void Init();
+class Pica {
+public:
+    explicit Pica();
+    ~Pica();
 
-/// Shutdown Pica state
-void Shutdown();
+    void Init();
+    void Shutdown();
+
+    ::Pica::State& State();
+    const ::Pica::State& State() const;
+
+private:
+    ::Pica::State state;
+};
 
 } // namespace Pica

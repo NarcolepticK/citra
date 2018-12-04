@@ -16,10 +16,13 @@
 #include <QTreeView>
 #include "citra_qt/debugger/graphics/graphics_vertex_shader.h"
 #include "citra_qt/util/util.h"
+#include "core/core.h"
+#include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/shader/debug_data.h"
 #include "video_core/shader/shader.h"
 #include "video_core/shader/shader_interpreter.h"
+#include "video_core/video_core.h"
 
 using nihstro::Instruction;
 using nihstro::OpCode;
@@ -349,11 +352,12 @@ void GraphicsVertexShaderWidget::DumpShader() {
         return;
     }
 
-    auto& setup = Pica::g_state.vs;
-    auto& config = Pica::g_state.regs.vs;
+    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& setup = pica_state.vs;
+    const auto& config = pica_state.regs.vs;
 
     Pica::DebugUtils::DumpShader(filename.toStdString(), config, setup,
-                                 Pica::g_state.regs.rasterizer.vs_output_attributes);
+                                 pica_state.regs.rasterizer.vs_output_attributes);
 }
 
 GraphicsVertexShaderWidget::GraphicsVertexShaderWidget(
@@ -504,16 +508,17 @@ void GraphicsVertexShaderWidget::Reload(bool replace_vertex_data, void* vertex_d
     // Reload shader code
     info.Clear();
 
-    auto& shader_setup = Pica::g_state.vs;
-    auto& shader_config = Pica::g_state.regs.vs;
+    auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    auto& shader_setup = pica_state.vs;
+    auto& shader_config = pica_state.regs.vs;
     for (auto instr : shader_setup.program_code)
         info.code.push_back({instr});
-    int num_attributes = shader_config.max_input_attribute_index + 1;
+    const int num_attributes = shader_config.max_input_attribute_index + 1;
 
     for (auto pattern : shader_setup.swizzle_data)
         info.swizzle_info.push_back({pattern});
 
-    u32 entry_point = Pica::g_state.regs.vs.main_offset;
+    u32 entry_point = pica_state.regs.vs.main_offset;
     info.labels.insert({entry_point, "main"});
 
     // Generate debug information

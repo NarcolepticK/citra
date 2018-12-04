@@ -125,7 +125,7 @@ void DumpShader(const std::string& filename, const ShaderRegs& config,
     // This is put into a try-catch block to make sure we notice unknown configurations.
     std::vector<OutputRegisterInfo> output_info_table;
     for (unsigned i = 0; i < 7; ++i) {
-        using OutputAttributes = Pica::RasterizerRegs::VSOutputAttributes;
+        using OutputAttributes = RasterizerRegs::VSOutputAttributes;
 
         // TODO: It's still unclear how the attribute components map to the register!
         //       Once we know that, this code probably will not make much sense anymore.
