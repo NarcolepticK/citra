@@ -9,11 +9,11 @@
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "common/microprofile.h"
-#include "common/vector_math.h"
+#include "core/core.h"
 #include "core/hle/service/gsp/gsp.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
-#include "video_core/command_processor.h"
+#include "video_core/pica/command_processor.h"
 #include "video_core/debugger/debugger.h"
 #include "video_core/pica.h"
 #include "video_core/pica_state.h"
@@ -32,25 +32,12 @@ namespace Pica {
 
 namespace CommandProcessor {
 
-static int vs_float_regs_counter = 0;
-static u32 vs_uniform_write_buffer[4];
-
-static int gs_float_regs_counter = 0;
-static u32 gs_uniform_write_buffer[4];
-
-static int default_attr_counter = 0;
-static u32 default_attr_write_buffer[3];
-
-// Expand a 4-bit mask to 4-byte mask, e.g. 0b0101 -> 0x00FF00FF
-static const u32 expand_bits_to_bytes[] = {
-    0x00000000, 0x000000ff, 0x0000ff00, 0x0000ffff, 0x00ff0000, 0x00ff00ff, 0x00ffff00, 0x00ffffff,
-    0xff000000, 0xff0000ff, 0xff00ff00, 0xff00ffff, 0xffff0000, 0xffff00ff, 0xffffff00, 0xffffffff,
-};
-
 MICROPROFILE_DEFINE(GPU_Drawing, "GPU", "Drawing", MP_RGB(50, 50, 240));
 
-static const char* GetShaderSetupTypeName(const Shader::ShaderSetup& setup) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+CommandProcessor::CommandProcessor(Core::System& system) : system(system) {}
+
+const char* CommandProcessor::GetShaderSetupTypeName(const Shader::ShaderSetup& setup) {
+    const auto& pica_state = system.VideoCore().Pica().State();
     if (&setup == &pica_state.vs) {
         return "vertex shader";
     }
@@ -60,21 +47,22 @@ static const char* GetShaderSetupTypeName(const Shader::ShaderSetup& setup) {
     return "unknown shader";
 }
 
-static void WriteUniformBoolReg(Shader::ShaderSetup& setup, const u32 value) {
+void CommandProcessor::WriteUniformBoolReg(Shader::ShaderSetup& setup, const u32 value) {
     for (unsigned i = 0; i < setup.uniforms.b.size(); ++i)
         setup.uniforms.b[i] = (value & (1 << i)) != 0;
 }
 
-static void WriteUniformIntReg(Shader::ShaderSetup& setup, const unsigned index,
-                               const Math::Vec4<u8>& values) {
+void CommandProcessor::WriteUniformIntReg(Shader::ShaderSetup& setup, const unsigned index,
+                                          const Math::Vec4<u8>& values) {
     ASSERT(index < setup.uniforms.i.size());
     setup.uniforms.i[index] = values;
     LOG_TRACE(HW_GPU, "Set {} integer uniform {} to {:02x} {:02x} {:02x} {:02x}",
               GetShaderSetupTypeName(setup), index, values.x, values.y, values.z, values.w);
 }
 
-static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
-                                 int& float_regs_counter, u32 uniform_write_buffer[4], const u32 value) {
+void CommandProcessor::WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
+                                            int& float_regs_counter, u32 uniform_write_buffer[4],
+                                            const u32 value) {
     auto& uniform_setup = config.uniform_setup;
 
     // TODO: Does actual hardware indeed keep an intermediate buffer or does
@@ -120,8 +108,7 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
     }
 }
 
-static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
-    auto& system = Core::System::GetInstance();
+void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
     auto& video_core = system.VideoCore();
     auto& pica_state = video_core.Pica().State();
     auto& regs = pica_state.regs;
@@ -659,8 +646,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
                                reinterpret_cast<void*>(&id));
 }
 
-void ProcessCommandList(const u32* list, const u32 size) {
-    auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+void CommandProcessor::ProcessCommandList(const u32* list, const u32 size) {
+    auto& pica_state = system.VideoCore().Pica().State();
 
     pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = list;
     pica_state.cmd_list.length = size / sizeof(u32);

@@ -1,6 +1,4 @@
 add_library(video_core STATIC
-    command_processor.cpp
-    command_processor.h
     debugger/debug_utils.cpp
     debugger/debug_utils.h
     debugger/debugger.cpp
@@ -12,6 +10,8 @@ add_library(video_core STATIC
     pica.h
     pica_state.h
     pica_types.h
+    pica/command_processor.cpp
+    pica/command_processor.h
     primitive_assembly.cpp
     primitive_assembly.h
     rasterizer_interface.h

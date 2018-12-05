@@ -11,7 +11,9 @@
 
 namespace Pica {
 
-Pica::Pica() {}
+Pica::Pica(Core::System& system) : system(system) {
+    command_processor = std::make_unique<CommandProcessor::CommandProcessor>(system);
+}
 Pica::~Pica() {}
 
 void Pica::Init() {
@@ -22,17 +24,16 @@ void Pica::Shutdown() {
     Shader::Shutdown();
 }
 
+void Pica::ProcessCommandList(const u32* list, const u32 size) {
+    command_processor->ProcessCommandList(list, size);
+}
+
 ::Pica::State& Pica::State() {
     return state;
 }
 
 const ::Pica::State& Pica::State() const {
     return state;
-}
-
-template <typename T>
-void Zero(T& o) {
-    memset(&o, 0, sizeof(o));
 }
 
 State::State() : geometry_pipeline(*this) {
@@ -51,6 +52,11 @@ State::State() : geometry_pipeline(*this) {
 
     gs_unit.SetVertexHandler(SubmitVertex, SetWinding);
     geometry_pipeline.SetVertexHandler(SubmitVertex);
+}
+
+template <typename T>
+void Zero(T& o) {
+    memset(&o, 0, sizeof(o));
 }
 
 void State::Reset() {

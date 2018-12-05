@@ -211,7 +211,6 @@ System::ResultStatus System::Init(EmuWindow& emu_window, u32 system_mode) {
 
     video_core = std::make_unique<VideoCore::VideoCore>(*this);
     ResultStatus result = video_core->Init(emu_window);
-    //ResultStatus result = VideoCore::Init(*this, emu_window);
     if (result != ResultStatus::Success) {
         return result;
     }
@@ -317,7 +316,6 @@ void System::Shutdown() {
 
     // Shutdown emulation session
     GDBStub::Shutdown();
-    //VideoCore::Shutdown();
     video_core->Shutdown();
     kernel.reset();
     hardware_manager->Shutdown();

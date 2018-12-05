@@ -45,7 +45,7 @@ public:
 
     Core::System::ResultStatus Init(EmuWindow& emu_window);
     Core::System::ResultStatus Shutdown();
-    //void Update();
+
     void SignalInterrupt(Service::GSP::InterruptId interrupt_id);
 
     /// Request a screenshot of the next frame

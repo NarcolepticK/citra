@@ -20,7 +20,7 @@ VideoCore::VideoCore(Core::System& system) : system(system) {}
 VideoCore::~VideoCore() {}
 
 Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
-    pica = std::make_unique<Pica::Pica>();
+    pica = std::make_unique<Pica::Pica>(system);
     pica->Init();
 
     renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);

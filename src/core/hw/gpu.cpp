@@ -17,8 +17,8 @@
 #include "core/hw/hw.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
-#include "video_core/command_processor.h"
 #include "video_core/debugger/debugger.h"
+#include "video_core/pica.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_base.h"
 #include "video_core/utils.h"
@@ -544,7 +544,7 @@ inline void Gpu::Write(u32 addr, const T data) {
                                                                 address);
             }
 
-            Pica::CommandProcessor::ProcessCommandList(buffer, config.size);
+            system.VideoCore().Pica().ProcessCommandList(buffer, config.size);
 
             regs.command_processor_config.trigger = 0;
         }
