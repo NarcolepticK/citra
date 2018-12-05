@@ -68,8 +68,7 @@ public:
         }
 
         virtual ~BreakPointObserver() {
-            auto context = context_weak.lock();
-            if (context) {
+            if (auto context = context_weak.lock()) {
                 std::unique_lock<std::mutex> lock(context->breakpoint_mutex);
                 context->breakpoint_observers.remove(this);
 
@@ -192,7 +191,9 @@ public:
     explicit PicaTracer();
     ~PicaTracer() = default;
 
-    inline bool IsPicaTracing() {return is_pica_tracing;};
+    inline bool IsPicaTracing() {
+        return is_pica_tracing;
+    };
     void OnPicaRegWrite(PicaTrace::Write write);
     void StartPicaTracing();
     std::unique_ptr<PicaTrace> FinishPicaTracing();

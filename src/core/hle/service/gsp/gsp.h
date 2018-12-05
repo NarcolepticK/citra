@@ -4,12 +4,9 @@
 
 #pragma once
 
-#include <cstddef>
-#include <string>
-#include "common/common_types.h"
-#include "core/hle/result.h"
 #include "core/hle/service/gsp/gsp_gpu.h"
 #include "core/hle/service/gsp/gsp_lcd.h"
+#include "core/hle/service/service.h"
 
 namespace Core {
 class System;

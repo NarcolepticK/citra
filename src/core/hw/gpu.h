@@ -11,8 +11,8 @@
 #include "common/common_funcs.h"
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "core/mmio.h"
 #include "core/core_timing.h"
+#include "core/mmio.h"
 
 // Returns index corresponding to the Regs member labeled by field_name
 // TODO: Due to Visual studio bug 209229, offsetof does not return constant expressions
@@ -191,7 +191,8 @@ struct DisplayTransferConfig {
     INSERT_PADDING_WORDS(0x1);
     TextureCopyConfig texture_copy;
 };
-static_assert(sizeof(DisplayTransferConfig) == 0x2C, "DisplayTransferConfig struct has incorrect size.");
+static_assert(sizeof(DisplayTransferConfig) == 0x2C,
+              "DisplayTransferConfig struct has incorrect size.");
 
 struct CommandProcessorConfig {
     u32 size; // command list size (in bytes)
@@ -200,7 +201,8 @@ struct CommandProcessorConfig {
     INSERT_PADDING_WORDS(0x1);
     u32 trigger; // it seems that writing to this field triggers command list processing
 };
-static_assert(sizeof(CommandProcessorConfig) == 0x14, "CommandProcessorConfig struct has incorrect size.");
+static_assert(sizeof(CommandProcessorConfig) == 0x14,
+              "CommandProcessorConfig struct has incorrect size.");
 
 // MMIO region 0x1EFxxxxx
 struct Regs {
@@ -291,12 +293,14 @@ public:
 
     static constexpr u32 VADDR_GPU = 0x1EF00000;
     static constexpr float SCREEN_REFRESH_RATE = 60;
+
 private:
     HW::GPU::Regs regs;
     Core::System& system;
 
     /// 268MHz CPU clocks / 60Hz frames per second
-    static constexpr u64 frame_ticks = static_cast<u64>(BASE_CLOCK_RATE_ARM11 / SCREEN_REFRESH_RATE);
+    static constexpr u64 frame_ticks =
+        static_cast<u64>(BASE_CLOCK_RATE_ARM11 / SCREEN_REFRESH_RATE);
 
     /// Event id for CoreTiming
     Core::TimingEventType* vblank_event;

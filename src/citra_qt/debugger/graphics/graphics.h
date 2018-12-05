@@ -13,7 +13,8 @@ class GPUCommandStreamItemModel : public QAbstractListModel,
     Q_OBJECT
 
 public:
-    explicit GPUCommandStreamItemModel(QObject* parent);
+    explicit GPUCommandStreamItemModel(std::shared_ptr<Debugger::GraphicsDebugger> debugger,
+                                       QObject* parent);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
@@ -35,7 +36,8 @@ class GPUCommandStreamWidget : public QDockWidget {
     Q_OBJECT
 
 public:
-    GPUCommandStreamWidget(std::shared_ptr<Debugger::GraphicsDebugger> debugger, QWidget* parent = nullptr);
+    GPUCommandStreamWidget(std::shared_ptr<Debugger::GraphicsDebugger> debugger,
+                           QWidget* parent = nullptr);
 
 private:
 };

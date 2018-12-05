@@ -51,7 +51,7 @@ public:
     void Shutdown();
     void Update();
 
-    void MapMMIORegions();
+    //void MapMMIORegions();
 
     template <typename T>
     void Read(T& var, const u32 addr);
@@ -67,6 +67,7 @@ public:
 
     Pica::Pica& Pica();
     const Pica::Pica& Pica() const;
+
 private:
     Core::System& system;
 
@@ -74,6 +75,5 @@ private:
     std::shared_ptr<HW::LCD::Lcd> lcd;
     std::shared_ptr<Pica::Pica> pica;
 };
-
 
 } // namespace HW

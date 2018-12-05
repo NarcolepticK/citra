@@ -199,6 +199,7 @@ void DebuggerBackend::Write(const Entry& entry) {
     SUB(HW, Memory)                                                                                \
     SUB(HW, LCD)                                                                                   \
     SUB(HW, GPU)                                                                                   \
+    SUB(HW, PICA)                                                                                  \
     SUB(HW, AES)                                                                                   \
     CLS(Frontend)                                                                                  \
     CLS(Render)                                                                                    \

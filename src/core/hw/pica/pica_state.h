@@ -8,9 +8,9 @@
 #include "common/bit_field.h"
 #include "common/common_types.h"
 #include "common/vector_math.h"
+#include "core/hw/pica/regs.h"
 #include "video_core/geometry_pipeline.h"
 #include "video_core/primitive_assembly.h"
-#include "core/hw/pica/regs.h"
 #include "video_core/shader/shader.h"
 
 namespace Pica {

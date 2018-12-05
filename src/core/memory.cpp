@@ -363,21 +363,21 @@ void MemorySystem::RasterizerMarkRegionCached(PAddr start, u32 size, bool cached
 
 void RasterizerFlushRegion(PAddr start, u32 size) {
     const auto& renderer = Core::System::GetInstance().VideoCore().Renderer();
-    if(&renderer == nullptr)
+    if (&renderer == nullptr)
         return;
     renderer.Rasterizer()->FlushRegion(start, size);
 }
 
 void RasterizerInvalidateRegion(PAddr start, u32 size) {
     const auto& renderer = Core::System::GetInstance().VideoCore().Renderer();
-    if(&renderer == nullptr)
+    if (&renderer == nullptr)
         return;
     renderer.Rasterizer()->InvalidateRegion(start, size);
 }
 
 void RasterizerFlushAndInvalidateRegion(PAddr start, u32 size) {
     const auto& renderer = Core::System::GetInstance().VideoCore().Renderer();
-    if(&renderer == nullptr)
+    if (&renderer == nullptr)
         return;
     renderer.Rasterizer()->FlushAndInvalidateRegion(start, size);
 }
@@ -386,7 +386,7 @@ void RasterizerFlushVirtualRegion(VAddr start, u32 size, FlushMode mode) {
     // Since pages are unmapped on shutdown after video core is shutdown, the renderer may be
     // null here
     const auto& renderer = Core::System::GetInstance().VideoCore().Renderer();
-    if(&renderer == nullptr)
+    if (&renderer == nullptr)
         return;
 
     VAddr end = start + size;

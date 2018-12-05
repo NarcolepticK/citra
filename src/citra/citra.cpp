@@ -43,6 +43,7 @@
 #include "core/movie.h"
 #include "core/settings.h"
 #include "network/network.h"
+#include "video_core/debugger/debugger.h"
 
 #ifdef _WIN32
 extern "C" {
@@ -292,8 +293,11 @@ int main(int argc, char** argv) {
     Frontend::RegisterDefaultApplets();
 
     std::unique_ptr<EmuWindow_SDL2> emu_window{std::make_unique<EmuWindow_SDL2>(fullscreen)};
+    std::shared_ptr<Debugger::DebuggerManager> debugger_manager =
+        std::make_shared<Debugger::DebuggerManager>();
 
     Core::System& system{Core::System::GetInstance()};
+    system.SetDebuggerManager(debugger_manager);
 
     SCOPE_EXIT({ system.Shutdown(); });
 

@@ -59,8 +59,8 @@ private:
     void UpdateFramerate();
 
     // Loads framebuffer from emulated memory into the display information structure
-    void LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& framebuffer,
-                            ScreenInfo& screen_info, bool right_eye);
+    void LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& framebuffer, ScreenInfo& screen_info,
+                            bool right_eye);
     // Fills active OpenGL texture with the given RGB color.
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, const TextureInfo& texture);
 

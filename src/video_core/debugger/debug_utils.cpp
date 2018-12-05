@@ -21,13 +21,13 @@
 #include "common/logging/log.h"
 #include "common/math_util.h"
 #include "common/vector_math.h"
-#include "video_core/debugger/debug_utils.h"
 #include "core/hw/pica/pica_state.h"
 #include "core/hw/pica/pica_types.h"
-#include "video_core/rasterizer_interface.h"
 #include "core/hw/pica/regs_rasterizer.h"
 #include "core/hw/pica/regs_shader.h"
 #include "core/hw/pica/regs_texturing.h"
+#include "video_core/debugger/debug_utils.h"
+#include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_base.h"
 #include "video_core/shader/shader.h"
 #include "video_core/texture/texture_decode.h"
@@ -79,7 +79,7 @@ void DebugContext::Resume() {
     resume_from_breakpoint.notify_one();
 }
 
-PicaTracer::PicaTracer() {};
+PicaTracer::PicaTracer(){};
 
 void PicaTracer::OnPicaRegWrite(PicaTrace::Write write) {
     std::lock_guard<std::mutex> lock(pica_trace_mutex);

@@ -13,13 +13,12 @@
 #include "common/vector_math.h"
 #include "core/core.h"
 #include "core/hle/service/gsp/gsp.h"
-#include "core/hw/hw.h"
 #include "core/hw/gpu.h"
 #include "core/hw/hw.h"
+#include "core/hw/pica.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
 #include "video_core/debugger/debugger.h"
-#include "core/hw/pica.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_base.h"
 #include "video_core/utils.h"
@@ -63,15 +62,18 @@ void Gpu::Init() {
     framebuffer_sub.active_fb = 0;
 
     Core::Timing& timing = system.CoreTiming();
-    vblank_event = timing.RegisterEvent("GPU::VBlankCallback", [this](u64 userdata, s64 cycles_late) {this->VBlankCallback(userdata, cycles_late);});
+    vblank_event =
+        timing.RegisterEvent("GPU::VBlankCallback", [this](u64 userdata, s64 cycles_late) {
+            this->VBlankCallback(userdata, cycles_late);
+        });
     timing.ScheduleEvent(frame_ticks, vblank_event);
 
-    LOG_DEBUG(HW_LCD, "initialized OK");
+    LOG_DEBUG(HW_GPU, "initialized OK");
 }
 
 /// Shutdown hardware
 void Gpu::Shutdown() {
-    LOG_DEBUG(HW_LCD, "shutdown OK");
+    LOG_DEBUG(HW_GPU, "shutdown OK");
 }
 
 /// Update hardware
@@ -385,7 +387,8 @@ void Gpu::TextureCopy(const DisplayTransferConfig& config) {
     // Zero gap means contiguous input/output even if width = 0. To avoid infinite loop below, width
     // is assigned with the total size if gap = 0.
     const u32 input_width = input_gap == 0 ? remaining_size : config.texture_copy.input_width * 16;
-    const u32 output_width = output_gap == 0 ? remaining_size : config.texture_copy.output_width * 16;
+    const u32 output_width =
+        output_gap == 0 ? remaining_size : config.texture_copy.output_width * 16;
 
     if (input_width == 0) {
         LOG_CRITICAL(HW_GPU, "zero input width. Real hardware freezes on this.");
@@ -501,8 +504,7 @@ inline void Gpu::Write(u32 addr, const T data) {
 
             const auto debug_context = &system.DebuggerManager().PicaDebugContext();
             if (debug_context)
-                debug_context->OnEvent(Pica::DebugContext::Event::IncomingDisplayTransfer,
-                                               nullptr);
+                debug_context->OnEvent(Pica::DebugContext::Event::IncomingDisplayTransfer, nullptr);
 
             if (config.is_texture_copy) {
                 TextureCopy(config);
@@ -518,9 +520,8 @@ inline void Gpu::Write(u32 addr, const T data) {
                 LOG_TRACE(HW_GPU,
                           "DisplayTransfer: {:#010X}({}x{})-> "
                           "{:#010X}({}x{}), dst format {:x}, flags {:#010X}",
-                          input_addr, config.input_width.Value(),
-                          config.input_height.Value(), output_addr,
-                          config.output_width.Value(), config.output_height.Value(),
+                          input_addr, config.input_width.Value(), config.input_height.Value(),
+                          output_addr, config.output_width.Value(), config.output_height.Value(),
                           static_cast<u32>(config.output_format.Value()), config.flags);
             }
 
@@ -541,8 +542,8 @@ inline void Gpu::Write(u32 addr, const T data) {
 
             const auto debug_context = &system.DebuggerManager().PicaDebugContext();
             if (debug_context && debug_context->recorder) {
-                debug_context->recorder->MemoryAccessed(reinterpret_cast<const u8*>(buffer), config.size,
-                                                                address);
+                debug_context->recorder->MemoryAccessed(reinterpret_cast<const u8*>(buffer),
+                                                        config.size, address);
             }
 
             system.HardwareManager().Pica().ProcessCommandList(buffer, config.size);
@@ -561,8 +562,8 @@ inline void Gpu::Write(u32 addr, const T data) {
     const auto debug_context = &system.DebuggerManager().PicaDebugContext();
     if (debug_context && debug_context->recorder) {
         // addr + GPU VBase - IO VBase + IO PBase
-        debug_context->recorder->RegisterWritten<T>(
-            addr + VADDR_GPU - VADDR_BASE + PADDR_BASE, data);
+        debug_context->recorder->RegisterWritten<T>(addr + VADDR_GPU - VADDR_BASE + PADDR_BASE,
+                                                    data);
     }
 }
 

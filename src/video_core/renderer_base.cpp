@@ -9,7 +9,8 @@
 #include "video_core/swrasterizer/swrasterizer.h"
 #include "video_core/video_core.h"
 
-RendererBase::RendererBase(Core::System& system, EmuWindow& window) : system(system), render_window{window} {}
+RendererBase::RendererBase(Core::System& system, EmuWindow& window)
+    : system(system), render_window{window} {}
 RendererBase::~RendererBase() = default;
 
 void RendererBase::UpdateCurrentFramebufferLayout() {
@@ -18,7 +19,7 @@ void RendererBase::UpdateCurrentFramebufferLayout() {
 }
 
 void RendererBase::RefreshRasterizerSetting() {
-   const bool hw_renderer_enabled = system.VideoCore().Settings().hw_renderer_enabled;
+    const bool hw_renderer_enabled = system.VideoCore().Settings().hw_renderer_enabled;
     if (rasterizer == nullptr || opengl_rasterizer_active != hw_renderer_enabled) {
         opengl_rasterizer_active = hw_renderer_enabled;
 

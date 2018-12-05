@@ -149,8 +149,10 @@ void GSP_GPU::SetLcdForceBlack(Kernel::HLERequestContext& ctx) {
     // the color to black (all zero).
     data.is_enabled.Assign(enable_black);
 
-    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_top), data.raw);
-    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_bottom), data.raw);
+    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_top),
+                                   data.raw);
+    system.HardwareManager().Write(HW::LCD::Lcd::VADDR_LCD + 4 * LCD_REG_INDEX(color_fill_bottom),
+                                   data.raw);
 
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
     rb.Push(RESULT_SUCCESS);
@@ -352,7 +354,8 @@ u32 GSP_GPU::GetUnusedThreadId() {
 }
 
 /// Gets a pointer to a thread command buffer in GSP shared memory
-inline u8* GSP_GPU::GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id) {
+inline u8* GSP_GPU::GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory,
+                                     u32 thread_id) {
     return shared_memory->GetPointer(0x800 + (thread_id * sizeof(CommandBuffer)));
 }
 
@@ -460,7 +463,7 @@ PAddr GSP_GPU::VirtualToPhysicalAddress(VAddr addr) {
 }
 
 void GSP_GPU::WriteGPURegister(u32 id, u32 data) {
-        system.HardwareManager().Gpu().Write32(0x1EF00000 + 4 * id, data);
+    system.HardwareManager().Gpu().Write32(0x1EF00000 + 4 * id, data);
 };
 
 /**
@@ -507,7 +510,7 @@ ResultCode GSP_GPU::WriteHWRegs(u32 base_address, u32 size_in_bytes, const std::
 }
 
 ResultCode GSP_GPU::WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes,
-                                const std::vector<u8>& data, const std::vector<u8>& masks) {
+                                        const std::vector<u8>& data, const std::vector<u8>& masks) {
     if (base_address & 3 || base_address >= 0x420000) {
         LOG_ERROR(Service_GSP,
                   "Write address was out of range or misaligned! (address=0x{:08x}, size=0x{:08x})",
@@ -607,9 +610,8 @@ void GSP_GPU::ExecuteCommand(Command& command, u32 thread_id) {
 
         // TODO(Subv): These memory accesses should not go through the application's memory mapping.
         // They should go through the GSP module's memory mapping.
-        Memory::CopyBlock(*system.Kernel().GetCurrentProcess(),
-                          command.dma_request.dest_address, command.dma_request.source_address,
-                          command.dma_request.size);
+        Memory::CopyBlock(*system.Kernel().GetCurrentProcess(), command.dma_request.dest_address,
+                          command.dma_request.source_address, command.dma_request.size);
         SignalInterrupt(InterruptId::DMA);
         break;
     }

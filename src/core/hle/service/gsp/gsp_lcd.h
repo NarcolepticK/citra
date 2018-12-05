@@ -10,7 +10,7 @@ namespace Service::GSP {
 
 class GSP_LCD final : public ServiceFramework<GSP_LCD> {
 public:
-    GSP_LCD();
+    explicit GSP_LCD();
     ~GSP_LCD() = default;
 };
 

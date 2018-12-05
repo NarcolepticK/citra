@@ -57,8 +57,8 @@ inline void Lcd::Write(u32 addr, const T data) {
     const auto debug_context = &system.DebuggerManager().PicaDebugContext();
     if (debug_context && debug_context->recorder) {
         // addr + GPU VBase - IO VBase + IO PBase
-        debug_context->recorder->RegisterWritten<T>(
-            addr + VADDR_LCD - VADDR_BASE + PADDR_BASE, data);
+        debug_context->recorder->RegisterWritten<T>(addr + VADDR_LCD - VADDR_BASE + PADDR_BASE,
+                                                    data);
     }
 }
 

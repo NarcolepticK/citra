@@ -11,8 +11,6 @@
 #include "common/microprofile.h"
 #include "core/core.h"
 #include "core/hle/service/gsp/gsp.h"
-#include "core/memory.h"
-#include "core/tracer/recorder.h"
 #include "core/hw/hw.h"
 #include "core/hw/pica.h"
 #include "core/hw/pica/command_processor.h"
@@ -21,6 +19,8 @@
 #include "core/hw/pica/regs.h"
 #include "core/hw/pica/regs_pipeline.h"
 #include "core/hw/pica/regs_texturing.h"
+#include "core/memory.h"
+#include "core/tracer/recorder.h"
 #include "video_core/debugger/debugger.h"
 #include "video_core/primitive_assembly.h"
 #include "video_core/rasterizer_interface.h"
@@ -134,12 +134,13 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
     // Double check for is_pica_tracing to avoid call overhead
     if (pica_tracer.IsPicaTracing()) {
-        pica_tracer.OnPicaRegWrite({static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
+        pica_tracer.OnPicaRegWrite(
+            {static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
     }
 
     if (debug_context)
         debug_context->OnEvent(DebugContext::Event::PicaCommandLoaded,
-                                 reinterpret_cast<void*>(&id));
+                               reinterpret_cast<void*>(&id));
 
     switch (id) {
     // Trigger IRQ
@@ -179,7 +180,8 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
             auto& setup = regs.pipeline.vs_default_attributes_setup;
 
             if (setup.index >= 16) {
-                LOG_ERROR(HW_GPU, "Invalid VS default attribute index {}", static_cast<int>(setup.index));
+                LOG_ERROR(HW_GPU, "Invalid VS default attribute index {}",
+                          static_cast<int>(setup.index));
                 break;
             }
 
@@ -193,9 +195,9 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                                            ((default_attr_write_buffer[2] >> 24) & 0xFF));
             attribute.x = float24::FromRaw(default_attr_write_buffer[2] & 0xFFFFFF);
 
-            LOG_TRACE(HW_GPU, "Set default VS attribute {:x} to ({} {} {} {})", static_cast<int>(setup.index),
-                      attribute.x.ToFloat32(), attribute.y.ToFloat32(), attribute.z.ToFloat32(),
-                      attribute.w.ToFloat32());
+            LOG_TRACE(HW_GPU, "Set default VS attribute {:x} to ({} {} {} {})",
+                      static_cast<int>(setup.index), attribute.x.ToFloat32(),
+                      attribute.y.ToFloat32(), attribute.z.ToFloat32(), attribute.w.ToFloat32());
 
             // TODO: Verify that this actually modifies the register!
             if (setup.index < 15) {
@@ -225,7 +227,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                     // Send to vertex shader
                     if (debug_context)
                         debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
-                                                 reinterpret_cast<void*>(&immediate_input));
+                                               reinterpret_cast<void*>(&immediate_input));
                     Shader::UnitState shader_unit;
                     Shader::AttributeBuffer output{};
 
@@ -248,7 +250,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                     rasterizer->DrawTriangles();
                     if (debug_context) {
                         debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
-                                                 nullptr);
+                                               nullptr);
                     }
                 }
             }
@@ -282,7 +284,8 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
         if (debug_context)
             debug_context->OnEvent(DebugContext::Event::IncomingPrimitiveBatch, nullptr);
 
-        const PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = pica_state.primitive_assembler;
+        const PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler =
+            pica_state.primitive_assembler;
 
         bool accelerate_draw = settings.hw_shader_enabled && primitive_assembler.IsEmpty();
 
@@ -306,8 +309,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
         const bool is_indexed = (id == PICA_REG_INDEX(pipeline.trigger_draw_indexed));
 
-        if (accelerate_draw &&
-            rasterizer->AccelerateDrawBatch(is_indexed)) {
+        if (accelerate_draw && rasterizer->AccelerateDrawBatch(is_indexed)) {
             if (debug_context) {
                 debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
             }
@@ -337,8 +339,8 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                 const u8* texture_data = system.Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
                 debug_context->recorder->MemoryAccessed(
                     texture_data,
-                    TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width /
-                        2 * texture.config.height,
+                    TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width / 2 *
+                        texture.config.height,
                     texture.config.GetPhysicalAddress());
             }
         }
@@ -402,7 +404,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                 // Send to vertex shader
                 if (debug_context)
                     debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
-                                             reinterpret_cast<void*>(&input));
+                                           reinterpret_cast<void*>(&input));
                 shader_unit.LoadInput(regs.vs, input);
                 shader_engine->Run(pica_state.vs, shader_unit);
                 shader_unit.WriteOutput(regs.vs, vs_output);
@@ -653,7 +655,8 @@ void CommandProcessor::ProcessCommandList(const u32* list, const u32 size) {
     pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = list;
     pica_state.cmd_list.length = size / sizeof(u32);
 
-    while (pica_state.cmd_list.current_ptr < pica_state.cmd_list.head_ptr + pica_state.cmd_list.length) {
+    while (pica_state.cmd_list.current_ptr <
+           pica_state.cmd_list.head_ptr + pica_state.cmd_list.length) {
 
         // Align read pointer to 8 bytes
         if ((pica_state.cmd_list.head_ptr - pica_state.cmd_list.current_ptr) % 2 != 0)

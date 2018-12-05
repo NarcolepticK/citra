@@ -6,8 +6,10 @@
 #include "citra_qt/debugger/graphics/graphics.h"
 #include "citra_qt/util/util.h"
 
-GPUCommandStreamItemModel::GPUCommandStreamItemModel(QObject* parent)
-    : QAbstractListModel(parent), command_count(0) {
+GPUCommandStreamItemModel::GPUCommandStreamItemModel(
+    std::shared_ptr<Debugger::GraphicsDebugger> debugger, QObject* parent)
+    : QAbstractListModel(parent),
+      command_count(0), Debugger::GraphicsDebugger::DebuggerObserver(debugger) {
     connect(this, &GPUCommandStreamItemModel::GXCommandFinished, this,
             &GPUCommandStreamItemModel::OnGXCommandFinishedInternal);
 }
@@ -21,7 +23,11 @@ QVariant GPUCommandStreamItemModel::data(const QModelIndex& index, int role) con
         return QVariant();
 
     int command_index = index.row();
-    const Service::GSP::Command& command = GetDebugger()->ReadGXCommandHistory(command_index);
+    auto debugger = debugger_weak.lock();
+    if (!debugger)
+        return QVariant();
+
+    const Service::GSP::Command& command = debugger->ReadGXCommandHistory(command_index);
     if (role == Qt::DisplayRole) {
         std::map<Service::GSP::CommandId, const char*> command_names = {
             {Service::GSP::CommandId::REQUEST_DMA, "REQUEST_DMA"},
@@ -61,11 +67,12 @@ void GPUCommandStreamItemModel::OnGXCommandFinishedInternal(int total_command_co
     emit dataChanged(index(prev_command_count, 0), index(total_command_count - 1, 0));
 }
 
-GPUCommandStreamWidget::GPUCommandStreamWidget(std::shared_ptr<Debugger::GraphicsDebugger> debugger, QWidget* parent)
+GPUCommandStreamWidget::GPUCommandStreamWidget(std::shared_ptr<Debugger::GraphicsDebugger> debugger,
+                                               QWidget* parent)
     : QDockWidget(tr("Graphics Debugger"), parent) {
     setObjectName("GraphicsDebugger");
 
-    GPUCommandStreamItemModel* command_model = new GPUCommandStreamItemModel(this);
+    GPUCommandStreamItemModel* command_model = new GPUCommandStreamItemModel(debugger, this);
     debugger->RegisterObserver(command_model);
 
     QListView* command_list = new QListView;

@@ -96,7 +96,8 @@ static std::array<GLfloat, 3 * 2> MakeOrthographicMatrix(const float width, cons
     return matrix;
 }
 
-RendererOpenGL::RendererOpenGL(Core::System& system, EmuWindow& window) : RendererBase{system, window} {}
+RendererOpenGL::RendererOpenGL(Core::System& system, EmuWindow& window)
+    : RendererBase{system, window} {}
 RendererOpenGL::~RendererOpenGL() = default;
 
 /// Swap buffers (render frame)
@@ -182,8 +183,7 @@ void RendererOpenGL::SwapBuffers() {
     render_window.PollEvents();
     render_window.SwapBuffers();
 
-    system.frame_limiter.DoFrameLimiting(
-        system.CoreTiming().GetGlobalTimeUs());
+    system.frame_limiter.DoFrameLimiting(system.CoreTiming().GetGlobalTimeUs());
     system.perf_stats.BeginSystemFrame();
 
     prev_state.Apply();
@@ -445,30 +445,38 @@ void RendererOpenGL::DrawScreens(const Layout::FramebufferLayout& layout) {
 
     if (layout.top_screen_enabled) {
         if (!Settings::values.toggle_3d) {
-            DrawSingleScreenRotated(screen_infos[0], static_cast<float>(top_screen.left), static_cast<float>(top_screen.top),
-                                    static_cast<float>(top_screen.GetWidth()), static_cast<float>(top_screen.GetHeight()));
+            DrawSingleScreenRotated(screen_infos[0], static_cast<float>(top_screen.left),
+                                    static_cast<float>(top_screen.top),
+                                    static_cast<float>(top_screen.GetWidth()),
+                                    static_cast<float>(top_screen.GetHeight()));
         } else {
             DrawSingleScreenRotated(screen_infos[0], static_cast<float>(top_screen.left) / 2,
-                                    static_cast<float>(top_screen.top), static_cast<float>(top_screen.GetWidth()) / 2,
+                                    static_cast<float>(top_screen.top),
+                                    static_cast<float>(top_screen.GetWidth()) / 2,
                                     static_cast<float>(top_screen.GetHeight()));
-            DrawSingleScreenRotated(screen_infos[1],
-                                    (static_cast<float>(top_screen.left) / 2) + (static_cast<float>(layout.width) / 2),
-                                    static_cast<float>(top_screen.top), static_cast<float>(top_screen.GetWidth()) / 2,
-                                    static_cast<float>(top_screen.GetHeight()));
+            DrawSingleScreenRotated(
+                screen_infos[1],
+                (static_cast<float>(top_screen.left) / 2) + (static_cast<float>(layout.width) / 2),
+                static_cast<float>(top_screen.top), static_cast<float>(top_screen.GetWidth()) / 2,
+                static_cast<float>(top_screen.GetHeight()));
         }
     }
     if (layout.bottom_screen_enabled) {
         if (!Settings::values.toggle_3d) {
             DrawSingleScreenRotated(screen_infos[2], static_cast<float>(bottom_screen.left),
-                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()),
+                                    static_cast<float>(bottom_screen.top),
+                                    static_cast<float>(bottom_screen.GetWidth()),
                                     static_cast<float>(bottom_screen.GetHeight()));
         } else {
             DrawSingleScreenRotated(screen_infos[2], static_cast<float>(bottom_screen.left / 2),
-                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()) / 2,
+                                    static_cast<float>(bottom_screen.top),
+                                    static_cast<float>(bottom_screen.GetWidth()) / 2,
                                     static_cast<float>(bottom_screen.GetHeight()));
             DrawSingleScreenRotated(screen_infos[2],
-                                    (static_cast<float>(bottom_screen.left) / 2) + (static_cast<float>(layout.width) / 2),
-                                    static_cast<float>(bottom_screen.top), static_cast<float>(bottom_screen.GetWidth()) / 2,
+                                    (static_cast<float>(bottom_screen.left) / 2) +
+                                        (static_cast<float>(layout.width) / 2),
+                                    static_cast<float>(bottom_screen.top),
+                                    static_cast<float>(bottom_screen.GetWidth()) / 2,
                                     static_cast<float>(bottom_screen.GetHeight()));
         }
     }

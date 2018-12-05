@@ -16,12 +16,12 @@
 #include "common/color.h"
 #include "core/core.h"
 #include "core/hw/gpu.h"
-#include "core/memory.h"
 #include "core/hw/hw.h"
 #include "core/hw/pica.h"
 #include "core/hw/pica/pica_state.h"
 #include "core/hw/pica/regs_framebuffer.h"
 #include "core/hw/pica/regs_texturing.h"
+#include "core/memory.h"
 #include "video_core/texture/texture_decode.h"
 #include "video_core/utils.h"
 

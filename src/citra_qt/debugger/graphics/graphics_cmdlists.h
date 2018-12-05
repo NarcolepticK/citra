@@ -38,7 +38,8 @@ class GPUCommandListWidget : public QDockWidget {
     Q_OBJECT
 
 public:
-    explicit GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer, QWidget* parent = nullptr);
+    explicit GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer,
+                                  QWidget* parent = nullptr);
 
 public slots:
     void OnToggleTracing();

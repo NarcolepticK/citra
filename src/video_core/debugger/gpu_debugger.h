@@ -5,7 +5,9 @@
 #pragma once
 
 #include <algorithm>
+#include <condition_variable>
 #include <functional>
+#include <mutex>
 #include <vector>
 #include "core/hle/service/gsp/gsp.h"
 
@@ -16,11 +18,11 @@ public:
     // Base class for all objects which need to be notified about GPU events
     class DebuggerObserver {
     public:
-        DebuggerObserver() : observed(nullptr) {}
+        DebuggerObserver(std::shared_ptr<GraphicsDebugger> debugger) : debugger_weak(debugger) {}
 
         virtual ~DebuggerObserver() {
-            if (observed)
-                observed->UnregisterObserver(this);
+            if (auto debugger = debugger_weak.lock())
+                debugger->UnregisterObserver(this);
         }
 
         /**
@@ -30,23 +32,19 @@ public:
          * @note All methods in this class are called from the GSP thread
          */
         virtual void GXCommandProcessed(int total_command_count) {
-            const Service::GSP::Command& cmd =
-                observed->ReadGXCommandHistory(total_command_count - 1);
-            LOG_TRACE(Debug_GPU, "Received command: id={:x}", (int)cmd.id.Value());
+            if (auto debugger = debugger_weak.lock()) {
+                const Service::GSP::Command& cmd =
+                    debugger->ReadGXCommandHistory(total_command_count - 1);
+                LOG_TRACE(Debug_GPU, "Received command: id={:x}", static_cast<int>(cmd.id.Value()));
+            }
         }
 
     protected:
-        const GraphicsDebugger* GetDebugger() const {
-            return observed;
-        }
-
-    private:
-        GraphicsDebugger* observed;
-
-        friend class GraphicsDebugger;
+        std::weak_ptr<GraphicsDebugger> debugger_weak;
     };
 
     void GXCommandProcessed(u8* command_data) {
+        std::lock_guard<std::mutex> lock(debugger_mutex);
         if (observers.empty())
             return;
 
@@ -60,20 +58,20 @@ public:
         });
     }
 
-    const Service::GSP::Command& ReadGXCommandHistory(int index) const {
-        // TODO: Is this thread-safe?
+    Service::GSP::Command& ReadGXCommandHistory(int index) {
+        std::lock_guard<std::mutex> lock(debugger_mutex);
         return gx_command_history[index];
     }
 
     void RegisterObserver(DebuggerObserver* observer) {
         // TODO: Check for duplicates
+        std::lock_guard<std::mutex> lock(debugger_mutex);
         observers.push_back(observer);
-        observer->observed = this;
     }
 
     void UnregisterObserver(DebuggerObserver* observer) {
+        std::lock_guard<std::mutex> lock(debugger_mutex);
         observers.erase(std::remove(observers.begin(), observers.end(), observer), observers.end());
-        observer->observed = nullptr;
     }
 
 private:
@@ -81,8 +79,8 @@ private:
         std::for_each(observers.begin(), observers.end(), func);
     }
 
+    std::mutex debugger_mutex;
     std::vector<DebuggerObserver*> observers;
-
     std::vector<Service::GSP::Command> gx_command_history;
 };
 } // namespace Debugger

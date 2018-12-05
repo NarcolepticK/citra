@@ -28,18 +28,17 @@ enum {
 }
 
 constexpr ResultCode RESULT_FIRST_INITIALIZATION(ErrCodes::FirstInitialization, ErrorModule::GX,
-                                                     ErrorSummary::Success, ErrorLevel::Success);
+                                                 ErrorSummary::Success, ErrorLevel::Success);
 constexpr ResultCode ERR_REGS_OUTOFRANGE_OR_MISALIGNED(ErrCodes::OutofRangeOrMisalignedAddress,
-                                                           ErrorModule::GX,
-                                                           ErrorSummary::InvalidArgument,
-                                                           ErrorLevel::Usage); // 0xE0E02A01
+                                                       ErrorModule::GX,
+                                                       ErrorSummary::InvalidArgument,
+                                                       ErrorLevel::Usage); // 0xE0E02A01
 constexpr ResultCode ERR_REGS_MISALIGNED(ErrorDescription::MisalignedSize, ErrorModule::GX,
-                                             ErrorSummary::InvalidArgument,
-                                             ErrorLevel::Usage); // 0xE0E02BF2
+                                         ErrorSummary::InvalidArgument,
+                                         ErrorLevel::Usage); // 0xE0E02BF2
 constexpr ResultCode ERR_REGS_INVALID_SIZE(ErrorDescription::InvalidSize, ErrorModule::GX,
-                                               ErrorSummary::InvalidArgument,
-                                               ErrorLevel::Usage); // 0xE0E02BEC
-
+                                           ErrorSummary::InvalidArgument,
+                                           ErrorLevel::Usage); // 0xE0E02BEC
 
 namespace Service::GSP {
 
@@ -206,7 +205,7 @@ struct SessionData : public Kernel::SessionRequestHandler::SessionDataBase {
     SessionData();
     ~SessionData();
 
-     /// Event triggered when GSP interrupt has been signalled
+    /// Event triggered when GSP interrupt has been signalled
     Kernel::SharedPtr<Kernel::Event> interrupt_event;
     /// Thread index into interrupt relay queue
     u32 thread_id;
@@ -437,7 +436,8 @@ private:
     u32 GetUnusedThreadId();
 
     /// Gets a pointer to a thread command buffer in GSP shared memory
-    inline u8* GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory, u32 thread_id);
+    inline u8* GetCommandBuffer(Kernel::SharedPtr<Kernel::SharedMemory> shared_memory,
+                                u32 thread_id);
 
     /// Gets a pointer to the interrupt relay queue for a given thread index
     inline InterruptRelayQueue* GetInterruptRelayQueue(
@@ -447,8 +447,8 @@ private:
 
     void WriteSingleHWReg(u32 base_address, u32 data);
     ResultCode WriteHWRegs(u32 base_address, u32 size_in_bytes, const std::vector<u8>& data);
-    ResultCode WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes,
-                                      const std::vector<u8>& data, const std::vector<u8>& masks);
+    ResultCode WriteHWRegsWithMask(u32 base_address, u32 size_in_bytes, const std::vector<u8>& data,
+                                   const std::vector<u8>& masks);
 
     ResultCode SetBufferSwap(u32 screen_id, const FrameBufferInfo& info);
 

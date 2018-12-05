@@ -18,11 +18,11 @@
 #include "citra_qt/util/util.h"
 #include "common/vector_math.h"
 #include "core/core.h"
-#include "core/memory.h"
 #include "core/hw/hw.h"
 #include "core/hw/pica.h"
 #include "core/hw/pica/pica_state.h"
 #include "core/hw/pica/regs.h"
+#include "core/memory.h"
 #include "video_core/texture/texture_decode.h"
 
 namespace {
@@ -121,8 +121,11 @@ void GPUCommandListModel::OnPicaTraceFinished(const Pica::PicaTrace& trace) {
 
 #define COMMAND_IN_RANGE(cmd_id, reg_name)                                                         \
     (cmd_id >= PICA_REG_INDEX(reg_name) &&                                                         \
-     cmd_id < PICA_REG_INDEX(reg_name) + sizeof(decltype(                                          \
-         Core::System::GetInstance().HardwareManager().Pica().State().regs.reg_name)) / 4)
+     cmd_id <                                                                                      \
+         PICA_REG_INDEX(reg_name) +                                                                \
+             sizeof(decltype(                                                                      \
+                 Core::System::GetInstance().HardwareManager().Pica().State().regs.reg_name)) /    \
+                 4)
 
 void GPUCommandListWidget::OnCommandDoubleClicked(const QModelIndex& index) {
     const unsigned int command_id =
@@ -185,7 +188,8 @@ void GPUCommandListWidget::SetCommandInfo(const QModelIndex& index) {
 }
 #undef COMMAND_IN_RANGE
 
-GPUCommandListWidget::GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer, QWidget* parent)
+GPUCommandListWidget::GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer,
+                                           QWidget* parent)
     : QDockWidget(tr("Pica Command List"), parent), pica_tracer(pica_tracer) {
     setObjectName("Pica Command List");
     GPUCommandListModel* model = new GPUCommandListModel(this);

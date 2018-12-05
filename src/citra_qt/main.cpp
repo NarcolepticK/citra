@@ -122,7 +122,9 @@ static void InitializeLogging() {
 #endif
 }
 
-GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr), debugger_manager(std::make_shared<Debugger::DebuggerManager>()) {
+GMainWindow::GMainWindow()
+    : config(new Config()), emu_thread(nullptr),
+      debugger_manager(std::make_shared<Debugger::DebuggerManager>()) {
     InitializeLogging();
     Debugger::ToggleConsole();
     Settings::LogSettings();
@@ -285,17 +287,20 @@ void GMainWindow::InitializeDebugWidgets() {
     graphicsCommandsWidget->hide();
     debug_menu->addAction(graphicsCommandsWidget->toggleViewAction());
 
-    graphicsBreakpointsWidget = new GraphicsBreakPointsWidget(debugger_manager->SharedPicaDebugContext(), this);
+    graphicsBreakpointsWidget =
+        new GraphicsBreakPointsWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsBreakpointsWidget);
     graphicsBreakpointsWidget->hide();
     debug_menu->addAction(graphicsBreakpointsWidget->toggleViewAction());
 
-    graphicsVertexShaderWidget = new GraphicsVertexShaderWidget(debugger_manager->SharedPicaDebugContext(), this);
+    graphicsVertexShaderWidget =
+        new GraphicsVertexShaderWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsVertexShaderWidget);
     graphicsVertexShaderWidget->hide();
     debug_menu->addAction(graphicsVertexShaderWidget->toggleViewAction());
 
-    graphicsTracingWidget = new GraphicsTracingWidget(debugger_manager->SharedPicaDebugContext(), this);
+    graphicsTracingWidget =
+        new GraphicsTracingWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsTracingWidget);
     graphicsTracingWidget->hide();
     debug_menu->addAction(graphicsTracingWidget->toggleViewAction());
@@ -1407,7 +1412,8 @@ void GMainWindow::OnToggleFilterBar() {
 }
 
 void GMainWindow::OnCreateGraphicsSurfaceViewer() {
-    auto graphicsSurfaceViewerWidget = new GraphicsSurfaceWidget(debugger_manager->SharedPicaDebugContext(), this);
+    auto graphicsSurfaceViewerWidget =
+        new GraphicsSurfaceWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsSurfaceViewerWidget);
     // TODO: Maybe graphicsSurfaceViewerWidget->setFloating(true);
     graphicsSurfaceViewerWidget->show();

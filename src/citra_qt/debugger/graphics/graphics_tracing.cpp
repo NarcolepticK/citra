@@ -15,13 +15,13 @@
 #include "citra_qt/debugger/graphics/graphics_tracing.h"
 #include "common/common_types.h"
 #include "core/core.h"
-#include "core/hw/hw.h"
 #include "core/hw/gpu.h"
+#include "core/hw/hw.h"
 #include "core/hw/lcd.h"
-#include "core/tracer/recorder.h"
-#include "nihstro/float24.h"
 #include "core/hw/pica.h"
 #include "core/hw/pica/pica_state.h"
+#include "core/tracer/recorder.h"
+#include "nihstro/float24.h"
 
 GraphicsTracingWidget::GraphicsTracingWidget(std::shared_ptr<Pica::DebugContext> debug_context,
                                              QWidget* parent)
@@ -75,8 +75,8 @@ void GraphicsTracingWidget::StartRecording() {
     std::array<u32, 4 * 16> default_attributes;
     for (unsigned i = 0; i < 16; ++i) {
         for (unsigned comp = 0; comp < 3; ++comp) {
-            default_attributes[4 * i + comp] = nihstro::to_float24(
-                pica_state.input_default_attributes.attr[i][comp].ToFloat32());
+            default_attributes[4 * i + comp] =
+                nihstro::to_float24(pica_state.input_default_attributes.attr[i][comp].ToFloat32());
         }
     }
 

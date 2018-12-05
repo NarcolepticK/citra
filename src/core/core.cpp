@@ -32,8 +32,8 @@
 #endif
 #include "core/settings.h"
 #include "network/network.h"
-#include "video_core/video_core.h"
 #include "video_core/debugger/debugger.h"
+#include "video_core/video_core.h"
 
 namespace Core {
 

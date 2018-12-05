@@ -55,10 +55,8 @@ struct Regs {
     }
 };
 static_assert(std::is_standard_layout<Regs>::value, "Regs Structure does not use standard layout");
-static_assert(offsetof(Regs, color_fill_top) == 0x81 * 4,
-              "color_fill_top has invalid position");
-static_assert(offsetof(Regs, backlight_top) == 0x90 * 4,
-              "backlight_top has invalid position");
+static_assert(offsetof(Regs, color_fill_top) == 0x81 * 4, "color_fill_top has invalid position");
+static_assert(offsetof(Regs, backlight_top) == 0x90 * 4, "backlight_top has invalid position");
 static_assert(offsetof(Regs, color_fill_bottom) == 0x281 * 4,
               "color_fill_bottom has invalid position");
 static_assert(offsetof(Regs, backlight_bottom) == 0x290 * 4,
@@ -98,6 +96,7 @@ public:
     const HW::LCD::Regs& Regs() const;
 
     static constexpr u32 VADDR_LCD = 0x1ED02000;
+
 private:
     HW::LCD::Regs regs;
     Core::System& system;

@@ -12,24 +12,23 @@ namespace Debugger {
 class DebuggerManager {
 public:
     explicit DebuggerManager();
-    ~DebuggerManager();
+    ~DebuggerManager() = default;
 
     void Reset();
 
     Debugger::GraphicsDebugger& GraphicsDebugger();
     const Debugger::GraphicsDebugger& GraphicsDebugger() const;
 
-    std::shared_ptr<Debugger::GraphicsDebugger> SharedGraphicsDebugger();
-
     Pica::DebugContext& PicaDebugContext();
     const Pica::DebugContext& PicaDebugContext() const;
-
-    std::shared_ptr<Pica::DebugContext> SharedPicaDebugContext();
 
     Pica::PicaTracer& PicaTracer();
     const Pica::PicaTracer& PicaTracer() const;
 
+    std::shared_ptr<Debugger::GraphicsDebugger> SharedGraphicsDebugger();
+    std::shared_ptr<Pica::DebugContext> SharedPicaDebugContext();
     std::shared_ptr<Pica::PicaTracer> SharedPicaTracer();
+
 private:
     std::shared_ptr<Debugger::GraphicsDebugger> graphics_debugger;
     std::shared_ptr<Pica::DebugContext> pica_debug_context;

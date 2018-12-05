@@ -3,10 +3,12 @@
 // Refer to the license.txt file included.
 
 #include <cstring>
+#include "common/logging/log.h"
 #include "core/core.h"
 #include "core/hw/pica.h"
 #include "video_core/geometry_pipeline.h"
 #include "video_core/renderer_base.h"
+#include "video_core/shader/shader.h"
 #include "video_core/video_core.h"
 
 namespace Pica {
@@ -18,10 +20,12 @@ Pica::~Pica() {}
 
 void Pica::Init() {
     state.Reset();
+    LOG_DEBUG(HW_PICA, "initialized OK");
 }
 
 void Pica::Shutdown() {
     Shader::Shutdown();
+    LOG_DEBUG(HW_PICA, "shutdown OK");
 }
 
 void Pica::ProcessCommandList(const u32* list, const u32 size) {

@@ -63,9 +63,8 @@ public:
     }
 
     /// Attempt to use a faster method to display the framebuffer to screen
-    virtual bool AccelerateDisplay(const HW::GPU::FramebufferConfig& config,
-                                   PAddr framebuffer_addr, u32 pixel_stride,
-                                   OpenGL::ScreenInfo& screen_info) {
+    virtual bool AccelerateDisplay(const HW::GPU::FramebufferConfig& config, PAddr framebuffer_addr,
+                                   u32 pixel_stride, OpenGL::ScreenInfo& screen_info) {
         return false;
     }
 
