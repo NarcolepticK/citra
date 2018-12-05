@@ -6,7 +6,6 @@
 #include "common/assert.h"
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "video_core/regs_texturing.h"
 #include "video_core/swrasterizer/texturing.h"
 
 namespace Pica {

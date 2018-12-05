@@ -10,15 +10,14 @@
 #ifndef _MSC_VER
 #include <type_traits> // for std::enable_if
 #endif
-
 #include "common/common_funcs.h"
 #include "common/common_types.h"
-#include "video_core/regs_framebuffer.h"
-#include "video_core/regs_lighting.h"
-#include "video_core/regs_pipeline.h"
-#include "video_core/regs_rasterizer.h"
-#include "video_core/regs_shader.h"
-#include "video_core/regs_texturing.h"
+#include "video_core/pica/regs_framebuffer.h"
+#include "video_core/pica/regs_lighting.h"
+#include "video_core/pica/regs_pipeline.h"
+#include "video_core/pica/regs_rasterizer.h"
+#include "video_core/pica/regs_shader.h"
+#include "video_core/pica/regs_texturing.h"
 
 namespace Pica {
 

@@ -21,7 +21,7 @@
 #include "core/tracer/recorder.h"
 #include "nihstro/float24.h"
 #include "video_core/pica.h"
-#include "video_core/pica_state.h"
+#include "video_core/pica/pica_state.h"
 #include "video_core/video_core.h"
 
 GraphicsTracingWidget::GraphicsTracingWidget(std::shared_ptr<Pica::DebugContext> debug_context,

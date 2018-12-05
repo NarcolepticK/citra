@@ -11,7 +11,7 @@
 #include <string>
 #include <type_traits>
 #include "common/hash.h"
-#include "video_core/regs.h"
+#include "video_core/pica/regs.h"
 #include "video_core/shader/shader.h"
 
 namespace OpenGL {

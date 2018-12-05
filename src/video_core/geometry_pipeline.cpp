@@ -3,8 +3,8 @@
 // Refer to the license.txt file included.
 
 #include "video_core/geometry_pipeline.h"
-#include "video_core/pica_state.h"
-#include "video_core/regs.h"
+#include "video_core/pica/pica_state.h"
+#include "video_core/pica/regs.h"
 #include "video_core/renderer_base.h"
 #include "video_core/shader/shader.h"
 #include "video_core/video_core.h"

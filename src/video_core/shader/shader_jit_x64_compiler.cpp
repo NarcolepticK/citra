@@ -14,8 +14,8 @@
 #include "common/x64/cpu_detect.h"
 #include "common/x64/xbyak_abi.h"
 #include "common/x64/xbyak_util.h"
-#include "video_core/pica_state.h"
-#include "video_core/pica_types.h"
+#include "video_core/pica/pica_state.h"
+#include "video_core/pica/pica_types.h"
 #include "video_core/shader/shader.h"
 #include "video_core/shader/shader_jit_x64_compiler.h"
 

@@ -7,7 +7,7 @@
 #include <tuple>
 #include "common/quaternion.h"
 #include "common/vector_math.h"
-#include "video_core/pica_state.h"
+#include "video_core/pica/pica_state.h"
 
 namespace Pica {
 

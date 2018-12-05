@@ -26,7 +26,7 @@
 #include "core/memory.h"
 #include "core/settings.h"
 #include "video_core/pica.h"
-#include "video_core/pica_state.h"
+#include "video_core/pica/pica_state.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_rasterizer_cache.h"
 #include "video_core/renderer_opengl/gl_state.h"

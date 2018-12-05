@@ -8,21 +8,21 @@ add_library(video_core STATIC
     geometry_pipeline.h
     pica.cpp
     pica.h
-    pica_state.h
-    pica_types.h
     pica/command_processor.cpp
     pica/command_processor.h
+    pica/pica_state.h
+    pica/pica_types.h
+    pica/regs.cpp
+    pica/regs.h
+    pica/regs_framebuffer.h
+    pica/regs_lighting.h
+    pica/regs_pipeline.h
+    pica/regs_rasterizer.h
+    pica/regs_shader.h
+    pica/regs_texturing.h
     primitive_assembly.cpp
     primitive_assembly.h
     rasterizer_interface.h
-    regs.cpp
-    regs.h
-    regs_framebuffer.h
-    regs_lighting.h
-    regs_pipeline.h
-    regs_rasterizer.h
-    regs_shader.h
-    regs_texturing.h
     renderer_base.cpp
     renderer_base.h
     renderer_opengl/gl_rasterizer.cpp

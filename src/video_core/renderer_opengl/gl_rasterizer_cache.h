@@ -26,8 +26,8 @@
 #include "common/common_types.h"
 #include "common/math_util.h"
 #include "core/hw/gpu.h"
-#include "video_core/regs_framebuffer.h"
-#include "video_core/regs_texturing.h"
+#include "video_core/pica/regs_framebuffer.h"
+#include "video_core/pica/regs_texturing.h"
 #include "video_core/renderer_opengl/gl_resource_manager.h"
 #include "video_core/texture/texture_decode.h"
 

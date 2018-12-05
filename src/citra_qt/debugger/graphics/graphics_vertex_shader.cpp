@@ -18,7 +18,7 @@
 #include "citra_qt/util/util.h"
 #include "core/core.h"
 #include "video_core/pica.h"
-#include "video_core/pica_state.h"
+#include "video_core/pica/pica_state.h"
 #include "video_core/shader/debug_data.h"
 #include "video_core/shader/shader.h"
 #include "video_core/shader/shader_interpreter.h"

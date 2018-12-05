@@ -5,7 +5,7 @@
 #pragma once
 
 #include <functional>
-#include "video_core/regs_pipeline.h"
+#include "video_core/pica/regs_pipeline.h"
 
 namespace Pica {
 

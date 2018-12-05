@@ -11,7 +11,6 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
-
 #include <nihstro/bit_field.h>
 #include <nihstro/float24.h>
 #include <nihstro/shader_binary.h>
@@ -23,12 +22,12 @@
 #include "common/math_util.h"
 #include "common/vector_math.h"
 #include "video_core/debugger/debug_utils.h"
-#include "video_core/pica_state.h"
-#include "video_core/pica_types.h"
+#include "video_core/pica/pica_state.h"
+#include "video_core/pica/pica_types.h"
 #include "video_core/rasterizer_interface.h"
-#include "video_core/regs_rasterizer.h"
-#include "video_core/regs_shader.h"
-#include "video_core/regs_texturing.h"
+#include "video_core/pica/regs_rasterizer.h"
+#include "video_core/pica/regs_shader.h"
+#include "video_core/pica/regs_texturing.h"
 #include "video_core/renderer_base.h"
 #include "video_core/shader/shader.h"
 #include "video_core/texture/texture_decode.h"

@@ -7,9 +7,9 @@
 #include "common/bit_set.h"
 #include "common/logging/log.h"
 #include "common/microprofile.h"
-#include "video_core/pica_state.h"
-#include "video_core/regs_rasterizer.h"
-#include "video_core/regs_shader.h"
+#include "video_core/pica/pica_state.h"
+#include "video_core/pica/regs_rasterizer.h"
+#include "video_core/pica/regs_shader.h"
 #include "video_core/shader/shader.h"
 #include "video_core/shader/shader_interpreter.h"
 #ifdef ARCHITECTURE_x86_64

@@ -11,9 +11,9 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "core/core.h"
-#include "video_core/regs_framebuffer.h"
-#include "video_core/regs_lighting.h"
-#include "video_core/regs_texturing.h"
+#include "video_core/pica/regs_framebuffer.h"
+#include "video_core/pica/regs_lighting.h"
+#include "video_core/pica/regs_texturing.h"
 
 using GLvec2 = std::array<GLfloat, 2>;
 using GLvec3 = std::array<GLfloat, 3>;

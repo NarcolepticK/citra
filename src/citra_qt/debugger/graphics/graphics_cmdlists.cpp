@@ -20,8 +20,8 @@
 #include "core/core.h"
 #include "core/memory.h"
 #include "video_core/pica.h"
-#include "video_core/pica_state.h"
-#include "video_core/regs.h"
+#include "video_core/pica/pica_state.h"
+#include "video_core/pica/regs.h"
 #include "video_core/texture/texture_decode.h"
 #include "video_core/video_core.h"
 

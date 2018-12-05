@@ -5,8 +5,7 @@
 #pragma once
 
 #include "video_core/pica/command_processor.h"
-#include "video_core/pica_state.h"
-#include "video_core/regs_texturing.h"
+#include "video_core/pica/pica_state.h"
 
 namespace Core {
 class System;
