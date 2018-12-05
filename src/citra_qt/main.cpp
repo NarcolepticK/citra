@@ -276,12 +276,12 @@ void GMainWindow::InitializeDebugWidgets() {
     connect(this, &GMainWindow::EmulationStopping, registersWidget,
             &RegistersWidget::OnEmulationStopping);
 
-    graphicsWidget = new GPUCommandStreamWidget(&debugger_manager->GraphicsDebugger(), this);
+    graphicsWidget = new GPUCommandStreamWidget(debugger_manager->SharedGraphicsDebugger(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsWidget);
     graphicsWidget->hide();
     debug_menu->addAction(graphicsWidget->toggleViewAction());
 
-    graphicsCommandsWidget = new GPUCommandListWidget(this);
+    graphicsCommandsWidget = new GPUCommandListWidget(debugger_manager->SharedPicaTracer(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsCommandsWidget);
     graphicsCommandsWidget->hide();
     debug_menu->addAction(graphicsCommandsWidget->toggleViewAction());
@@ -864,7 +864,7 @@ void GMainWindow::ShutdownGame() {
     // breakpoint after (or before) RequestStop() is called, the emulation would never be able
     // to continue out to the main loop and terminate. Thus wait() would hang forever.
     // TODO(bunnei): This function is not thread safe, but it's being used as if it were
-    Core::System::GetInstance().DebuggerManager().PicaDebugContext().ClearBreakpoints();
+    debugger_manager->PicaDebugContext().ClearBreakpoints();
 
     // Frame advancing must be cancelled in order to release the emu thread from waiting
     Core::System::GetInstance().frame_limiter.SetFrameAdvancing(false);

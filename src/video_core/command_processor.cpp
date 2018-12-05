@@ -128,6 +128,7 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
     const auto& settings = video_core.Settings();
     const auto rasterizer = video_core.Renderer().Rasterizer();
     const auto debug_context = &system.DebuggerManager().PicaDebugContext();
+    auto& pica_tracer = system.DebuggerManager().PicaTracer();
 
     if (id >= Regs::NUM_REGS) {
         LOG_ERROR(
@@ -144,8 +145,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
     regs.reg_array[id] = (old_value & ~write_mask) | (value & write_mask);
 
     // Double check for is_pica_tracing to avoid call overhead
-    if (DebugUtils::IsPicaTracing()) {
-        DebugUtils::OnPicaRegWrite({static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
+    if (pica_tracer.IsPicaTracing()) {
+        pica_tracer.OnPicaRegWrite({static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
     }
 
     if (debug_context)
@@ -655,7 +656,7 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
     if (debug_context)
         debug_context->OnEvent(DebugContext::Event::PicaCommandProcessed,
-                                 reinterpret_cast<void*>(&id));
+                               reinterpret_cast<void*>(&id));
 }
 
 void ProcessCommandList(const u32* list, const u32 size) {

@@ -8,7 +8,8 @@ namespace Debugger {
 
 DebuggerManager::DebuggerManager() {
     pica_debug_context = Pica::DebugContext::Construct();
-    graphics_debugger = std::make_unique<Debugger::GraphicsDebugger>();
+    graphics_debugger = std::make_shared<Debugger::GraphicsDebugger>();
+    pica_tracer = std::make_shared<Pica::PicaTracer>();
 }
 
 DebuggerManager::~DebuggerManager() {
@@ -27,6 +28,11 @@ const Debugger::GraphicsDebugger& DebuggerManager::GraphicsDebugger() const {
     return *graphics_debugger;
 }
 
+std::shared_ptr<Debugger::GraphicsDebugger> DebuggerManager::SharedGraphicsDebugger() {
+    return graphics_debugger;
+}
+
+
 Pica::DebugContext& DebuggerManager::PicaDebugContext() {
     return *pica_debug_context;
 }
@@ -37,6 +43,18 @@ const Pica::DebugContext& DebuggerManager::PicaDebugContext() const {
 
 std::shared_ptr<Pica::DebugContext> DebuggerManager::SharedPicaDebugContext() {
     return pica_debug_context;
+}
+
+Pica::PicaTracer& DebuggerManager::PicaTracer() {
+    return *pica_tracer;
+}
+
+const Pica::PicaTracer& DebuggerManager::PicaTracer() const {
+    return *pica_tracer;
+}
+
+std::shared_ptr<Pica::PicaTracer> DebuggerManager::SharedPicaTracer() {
+    return pica_tracer;
 }
 
 } // namespace Debugger

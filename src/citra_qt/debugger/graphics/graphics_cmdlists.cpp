@@ -111,7 +111,7 @@ QVariant GPUCommandListModel::headerData(int section, Qt::Orientation orientatio
     return QVariant();
 }
 
-void GPUCommandListModel::OnPicaTraceFinished(const Pica::DebugUtils::PicaTrace& trace) {
+void GPUCommandListModel::OnPicaTraceFinished(const Pica::PicaTrace& trace) {
     beginResetModel();
 
     pica_trace = trace;
@@ -185,8 +185,8 @@ void GPUCommandListWidget::SetCommandInfo(const QModelIndex& index) {
 }
 #undef COMMAND_IN_RANGE
 
-GPUCommandListWidget::GPUCommandListWidget(QWidget* parent)
-    : QDockWidget(tr("Pica Command List"), parent) {
+GPUCommandListWidget::GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer, QWidget* parent)
+    : QDockWidget(tr("Pica Command List"), parent), pica_tracer(pica_tracer) {
     setObjectName("Pica Command List");
     GPUCommandListModel* model = new GPUCommandListModel(this);
 
@@ -229,11 +229,11 @@ GPUCommandListWidget::GPUCommandListWidget(QWidget* parent)
 }
 
 void GPUCommandListWidget::OnToggleTracing() {
-    if (!Pica::DebugUtils::IsPicaTracing()) {
-        Pica::DebugUtils::StartPicaTracing();
+    if (!pica_tracer->IsPicaTracing()) {
+        pica_tracer->StartPicaTracing();
         toggle_tracing->setText(tr("Finish Tracing"));
     } else {
-        pica_trace = Pica::DebugUtils::FinishPicaTracing();
+        pica_trace = pica_tracer->FinishPicaTracing();
         emit TracingFinished(*pica_trace);
         toggle_tracing->setText(tr("Start Tracing"));
     }

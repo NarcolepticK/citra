@@ -128,7 +128,7 @@ public:
      */
     void OnEvent(Event event, void* data) {
         // This check is left in the header to allow the compiler to inline it.
-        if (!breakpoints[(int)event].enabled)
+        if (!breakpoints[static_cast<int>(event)].enabled)
             return;
         // For the rest of event handling, call a separate function.
         DoOnEvent(event, data);
@@ -177,14 +177,6 @@ private:
     std::list<BreakPointObserver*> breakpoint_observers;
 };
 
-namespace DebugUtils {
-
-#define PICA_LOG_TEV 0
-
-void DumpShader(const std::string& filename, const ShaderRegs& config,
-                const Shader::ShaderSetup& setup,
-                const RasterizerRegs::VSOutputAttributes* output_attributes);
-
 // Utility class to log Pica commands.
 struct PicaTrace {
     struct Write {
@@ -195,14 +187,29 @@ struct PicaTrace {
     std::vector<Write> writes;
 };
 
-extern bool g_is_pica_tracing;
+class PicaTracer {
+public:
+    explicit PicaTracer();
+    ~PicaTracer() = default;
 
-void StartPicaTracing();
-inline bool IsPicaTracing() {
-    return g_is_pica_tracing;
-}
-void OnPicaRegWrite(PicaTrace::Write write);
-std::unique_ptr<PicaTrace> FinishPicaTracing();
+    inline bool IsPicaTracing() {return is_pica_tracing;};
+    void OnPicaRegWrite(PicaTrace::Write write);
+    void StartPicaTracing();
+    std::unique_ptr<PicaTrace> FinishPicaTracing();
+
+private:
+    std::unique_ptr<PicaTrace> pica_trace;
+    std::mutex pica_trace_mutex;
+    bool is_pica_tracing = false;
+};
+
+namespace DebugUtils {
+
+#define PICA_LOG_TEV 0
+
+void DumpShader(const std::string& filename, const ShaderRegs& config,
+                const Shader::ShaderSetup& setup,
+                const RasterizerRegs::VSOutputAttributes* output_attributes);
 
 std::string GetTevStageConfigColorCombinerString(const TexturingRegs::TevStageConfig& tev_stage);
 std::string GetTevStageConfigAlphaCombinerString(const TexturingRegs::TevStageConfig& tev_stage);

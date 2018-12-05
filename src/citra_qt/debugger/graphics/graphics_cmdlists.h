@@ -6,7 +6,7 @@
 
 #include <QAbstractListModel>
 #include <QDockWidget>
-#include "video_core/debugger/debug_utils.h"
+#include "video_core/debugger/debugger.h"
 
 class QPushButton;
 class QTreeView;
@@ -28,17 +28,17 @@ public:
                         int role = Qt::DisplayRole) const override;
 
 public slots:
-    void OnPicaTraceFinished(const Pica::DebugUtils::PicaTrace& trace);
+    void OnPicaTraceFinished(const Pica::PicaTrace& trace);
 
 private:
-    Pica::DebugUtils::PicaTrace pica_trace;
+    Pica::PicaTrace pica_trace;
 };
 
 class GPUCommandListWidget : public QDockWidget {
     Q_OBJECT
 
 public:
-    explicit GPUCommandListWidget(QWidget* parent = nullptr);
+    explicit GPUCommandListWidget(std::shared_ptr<Pica::PicaTracer> pica_tracer, QWidget* parent = nullptr);
 
 public slots:
     void OnToggleTracing();
@@ -49,10 +49,11 @@ public slots:
     void CopyAllToClipboard();
 
 signals:
-    void TracingFinished(const Pica::DebugUtils::PicaTrace&);
+    void TracingFinished(const Pica::PicaTrace&);
 
 private:
-    std::unique_ptr<Pica::DebugUtils::PicaTrace> pica_trace;
+    std::shared_ptr<Pica::PicaTracer> pica_tracer;
+    std::unique_ptr<Pica::PicaTrace> pica_trace;
 
     QTreeView* list_widget;
     QWidget* command_info_widget;

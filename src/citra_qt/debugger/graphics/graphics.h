@@ -35,7 +35,7 @@ class GPUCommandStreamWidget : public QDockWidget {
     Q_OBJECT
 
 public:
-    GPUCommandStreamWidget(Debugger::GraphicsDebugger* debugger = nullptr, QWidget* parent = nullptr);
+    GPUCommandStreamWidget(std::shared_ptr<Debugger::GraphicsDebugger> debugger, QWidget* parent = nullptr);
 
 private:
 };
