@@ -8,7 +8,7 @@
 #include "common/bit_field.h"
 #include "common/common_funcs.h"
 #include "common/common_types.h"
-#include "video_core/pica/pica_types.h"
+#include "core/hw/pica/pica_types.h"
 
 namespace Pica {
 

@@ -13,16 +13,17 @@
 #include "core/hle/service/gsp/gsp.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
-#include "video_core/pica/command_processor.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/command_processor.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/pica_types.h"
+#include "core/hw/pica/regs.h"
+#include "core/hw/pica/regs_pipeline.h"
+#include "core/hw/pica/regs_texturing.h"
 #include "video_core/debugger/debugger.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/pica_types.h"
 #include "video_core/primitive_assembly.h"
 #include "video_core/rasterizer_interface.h"
-#include "video_core/pica/regs.h"
-#include "video_core/pica/regs_pipeline.h"
-#include "video_core/pica/regs_texturing.h"
 #include "video_core/renderer_base.h"
 #include "video_core/shader/shader.h"
 #include "video_core/vertex_loader.h"
@@ -37,7 +38,7 @@ MICROPROFILE_DEFINE(GPU_Drawing, "GPU", "Drawing", MP_RGB(50, 50, 240));
 CommandProcessor::CommandProcessor(Core::System& system) : system(system) {}
 
 const char* CommandProcessor::GetShaderSetupTypeName(const Shader::ShaderSetup& setup) {
-    const auto& pica_state = system.VideoCore().Pica().State();
+    const auto& pica_state = system.HardwareManager().Pica().State();
     if (&setup == &pica_state.vs) {
         return "vertex shader";
     }
@@ -110,7 +111,7 @@ void CommandProcessor::WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSe
 
 void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
     auto& video_core = system.VideoCore();
-    auto& pica_state = video_core.Pica().State();
+    auto& pica_state = system.HardwareManager().Pica().State();
     auto& regs = pica_state.regs;
     const auto& settings = video_core.Settings();
     const auto rasterizer = video_core.Renderer().Rasterizer();
@@ -647,7 +648,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
 }
 
 void CommandProcessor::ProcessCommandList(const u32* list, const u32 size) {
-    auto& pica_state = system.VideoCore().Pica().State();
+    auto& pica_state = system.HardwareManager().Pica().State();
 
     pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = list;
     pica_state.cmd_list.length = size / sizeof(u32);

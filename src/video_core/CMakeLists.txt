@@ -6,20 +6,6 @@ add_library(video_core STATIC
     debugger/gpu_debugger.h
     geometry_pipeline.cpp
     geometry_pipeline.h
-    pica.cpp
-    pica.h
-    pica/command_processor.cpp
-    pica/command_processor.h
-    pica/pica_state.h
-    pica/pica_types.h
-    pica/regs.cpp
-    pica/regs.h
-    pica/regs_framebuffer.h
-    pica/regs_lighting.h
-    pica/regs_pipeline.h
-    pica/regs_rasterizer.h
-    pica/regs_shader.h
-    pica/regs_texturing.h
     primitive_assembly.cpp
     primitive_assembly.h
     rasterizer_interface.h

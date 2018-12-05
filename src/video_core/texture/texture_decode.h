@@ -6,7 +6,7 @@
 
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "video_core/pica/regs_texturing.h"
+#include "core/hw/pica/regs_texturing.h"
 
 namespace Pica {
 namespace Texture {

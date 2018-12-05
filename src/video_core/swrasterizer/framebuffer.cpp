@@ -11,9 +11,10 @@
 #include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/regs_framebuffer.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/regs_framebuffer.h"
 #include "video_core/swrasterizer/framebuffer.h"
 #include "video_core/utils.h"
 #include "video_core/video_core.h"
@@ -22,7 +23,7 @@ namespace Pica {
 namespace Rasterizer {
 
 void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();
 
@@ -66,7 +67,7 @@ void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
 }
 
 const Math::Vec4<u8> GetPixel(int x, int y) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();
 
@@ -105,7 +106,7 @@ const Math::Vec4<u8> GetPixel(int x, int y) {
 }
 
 u32 GetDepth(int x, int y) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
     const u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
@@ -135,7 +136,7 @@ u32 GetDepth(int x, int y) {
 }
 
 u8 GetStencil(int x, int y) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
     const u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
@@ -163,7 +164,7 @@ u8 GetStencil(int x, int y) {
 }
 
 void SetDepth(int x, int y, u32 value) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
     u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
@@ -199,7 +200,7 @@ void SetDepth(int x, int y, u32 value) {
 }
 
 void SetStencil(int x, int y, u8 value) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const PAddr addr = framebuffer.GetDepthBufferPhysicalAddress();
     u8* depth_buffer = Core::System::GetInstance().Memory().GetPhysicalPointer(addr);
@@ -383,7 +384,7 @@ static void EncodeX24S8Shadow(const u8 stencil, u8* bytes) {
 }
 
 void DrawShadowMapPixel(int x, int y, u32 depth, u8 stencil) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     const auto& shadow = pica_state.regs.framebuffer.shadow;
     const PAddr addr = framebuffer.GetColorBufferPhysicalAddress();

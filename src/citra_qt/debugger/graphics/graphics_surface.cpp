@@ -17,13 +17,13 @@
 #include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/regs_framebuffer.h"
-#include "video_core/pica/regs_texturing.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/regs_framebuffer.h"
+#include "core/hw/pica/regs_texturing.h"
 #include "video_core/texture/texture_decode.h"
 #include "video_core/utils.h"
-#include "video_core/video_core.h"
 
 SurfacePicture::SurfacePicture(QWidget* parent, GraphicsSurfaceWidget* surface_widget_)
     : QLabel(parent), surface_widget(surface_widget_) {}
@@ -417,7 +417,7 @@ void GraphicsSurfaceWidget::Pick(int x, int y) {
 void GraphicsSurfaceWidget::OnUpdate() {
     QPixmap pixmap;
 
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& framebuffer = pica_state.regs.framebuffer.framebuffer;
     switch (surface_source) {
     case Source::ColorBuffer: {

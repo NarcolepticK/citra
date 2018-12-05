@@ -12,12 +12,12 @@
 #endif
 #include "common/common_funcs.h"
 #include "common/common_types.h"
-#include "video_core/pica/regs_framebuffer.h"
-#include "video_core/pica/regs_lighting.h"
-#include "video_core/pica/regs_pipeline.h"
-#include "video_core/pica/regs_rasterizer.h"
-#include "video_core/pica/regs_shader.h"
-#include "video_core/pica/regs_texturing.h"
+#include "core/hw/pica/regs_framebuffer.h"
+#include "core/hw/pica/regs_lighting.h"
+#include "core/hw/pica/regs_pipeline.h"
+#include "core/hw/pica/regs_rasterizer.h"
+#include "core/hw/pica/regs_shader.h"
+#include "core/hw/pica/regs_texturing.h"
 
 namespace Pica {
 

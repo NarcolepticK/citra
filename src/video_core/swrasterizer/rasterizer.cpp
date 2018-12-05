@@ -17,12 +17,13 @@
 #include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/pica_types.h"
-#include "video_core/pica/regs_framebuffer.h"
-#include "video_core/pica/regs_rasterizer.h"
-#include "video_core/pica/regs_texturing.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/pica_types.h"
+#include "core/hw/pica/regs_framebuffer.h"
+#include "core/hw/pica/regs_rasterizer.h"
+#include "core/hw/pica/regs_texturing.h"
 #include "video_core/shader/shader.h"
 #include "video_core/swrasterizer/framebuffer.h"
 #include "video_core/swrasterizer/lighting.h"
@@ -127,7 +128,7 @@ MICROPROFILE_DEFINE(GPU_Rasterization, "GPU", "Rasterization", MP_RGB(50, 50, 24
  */
 static void ProcessTriangleInternal(const Vertex& v0, const Vertex& v1, const Vertex& v2,
                                     const bool reversed = false) {
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& regs = pica_state.regs;
     MICROPROFILE_SCOPE(GPU_Rasterization);
 
@@ -667,7 +668,7 @@ static void ProcessTriangleInternal(const Vertex& v0, const Vertex& v1, const Ve
                                   &old_stencil](FramebufferRegs::StencilAction action) {
                 const u8 new_stencil =
                     PerformStencilAction(action, old_stencil, stencil_test.reference_value);
-                const auto& regs = Core::System::GetInstance().VideoCore().Pica().State().regs;
+                const auto& regs = Core::System::GetInstance().HardwareManager().Pica().State().regs;
                 if (regs.framebuffer.framebuffer.allow_depth_stencil_write != 0)
                     SetStencil(x >> 4, y >> 4,
                                (new_stencil & stencil_test.write_mask) |

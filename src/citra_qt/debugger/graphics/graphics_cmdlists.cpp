@@ -19,11 +19,11 @@
 #include "common/vector_math.h"
 #include "core/core.h"
 #include "core/memory.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/regs.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/regs.h"
 #include "video_core/texture/texture_decode.h"
-#include "video_core/video_core.h"
 
 namespace {
 QImage LoadTexture(const u8* src, const Pica::Texture::TextureInfo& info) {
@@ -122,7 +122,7 @@ void GPUCommandListModel::OnPicaTraceFinished(const Pica::PicaTrace& trace) {
 #define COMMAND_IN_RANGE(cmd_id, reg_name)                                                         \
     (cmd_id >= PICA_REG_INDEX(reg_name) &&                                                         \
      cmd_id < PICA_REG_INDEX(reg_name) + sizeof(decltype(                                          \
-         Core::System::GetInstance().VideoCore().Pica().State().regs.reg_name)) / 4)
+         Core::System::GetInstance().HardwareManager().Pica().State().regs.reg_name)) / 4)
 
 void GPUCommandListWidget::OnCommandDoubleClicked(const QModelIndex& index) {
     const unsigned int command_id =
@@ -164,7 +164,7 @@ void GPUCommandListWidget::SetCommandInfo(const QModelIndex& index) {
             texture_index = 2;
         }
 
-        const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+        const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
         const auto texture = pica_state.regs.texturing.GetTextures()[texture_index];
         const auto config = texture.config;
         const auto format = texture.format;

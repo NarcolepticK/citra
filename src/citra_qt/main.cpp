@@ -185,7 +185,6 @@ GMainWindow::~GMainWindow() {
         delete render_window;
 
     debugger_manager->Reset();
-    //Pica::g_debug_context.reset();
     Network::Shutdown();
 }
 

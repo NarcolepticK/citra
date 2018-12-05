@@ -6,7 +6,7 @@
 #include "common/logging/log.h"
 #include "core/settings.h"
 #include "core/hle/service/gsp/gsp_gpu.h"
-#include "video_core/pica.h"
+#include "core/hw/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
 #include "video_core/video_core.h"
@@ -20,9 +20,6 @@ VideoCore::VideoCore(Core::System& system) : system(system) {}
 VideoCore::~VideoCore() {}
 
 Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
-    pica = std::make_unique<Pica::Pica>(system);
-    pica->Init();
-
     renderer = std::make_unique<OpenGL::RendererOpenGL>(system, emu_window);
     Core::System::ResultStatus result = renderer->Init();
 
@@ -36,8 +33,6 @@ Core::System::ResultStatus VideoCore::Init(EmuWindow& emu_window) {
 }
 
 Core::System::ResultStatus VideoCore::Shutdown() {
-    pica->Shutdown();
-
     renderer.reset();
 
     LOG_DEBUG(Render, "shutdown OK");
@@ -91,14 +86,6 @@ VideoCoreSettings& VideoCore::Settings() {
 
 const VideoCoreSettings& VideoCore::Settings() const {
     return settings;
-};
-
-Pica::Pica& VideoCore::Pica() {
-    return *pica;
-};
-
-const Pica::Pica& VideoCore::Pica() const {
-    return *pica;
 };
 
 } // namespace VideoCore

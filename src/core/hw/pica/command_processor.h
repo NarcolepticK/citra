@@ -8,7 +8,7 @@
 #include "common/bit_field.h"
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "video_core/pica/regs_shader.h"
+#include "core/hw/pica/regs_shader.h"
 
 namespace Core {
 class System;

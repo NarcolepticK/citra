@@ -4,8 +4,8 @@
 
 #include <cstring>
 #include "core/core.h"
+#include "core/hw/pica.h"
 #include "video_core/geometry_pipeline.h"
-#include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
 

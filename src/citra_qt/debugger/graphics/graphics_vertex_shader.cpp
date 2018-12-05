@@ -17,12 +17,12 @@
 #include "citra_qt/debugger/graphics/graphics_vertex_shader.h"
 #include "citra_qt/util/util.h"
 #include "core/core.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
 #include "video_core/shader/debug_data.h"
 #include "video_core/shader/shader.h"
 #include "video_core/shader/shader_interpreter.h"
-#include "video_core/video_core.h"
 
 using nihstro::Instruction;
 using nihstro::OpCode;
@@ -352,7 +352,7 @@ void GraphicsVertexShaderWidget::DumpShader() {
         return;
     }
 
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& setup = pica_state.vs;
     const auto& config = pica_state.regs.vs;
 
@@ -508,7 +508,7 @@ void GraphicsVertexShaderWidget::Reload(bool replace_vertex_data, void* vertex_d
     // Reload shader code
     info.Clear();
 
-    auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     auto& shader_setup = pica_state.vs;
     auto& shader_config = pica_state.regs.vs;
     for (auto instr : shader_setup.program_code)

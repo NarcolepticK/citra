@@ -4,7 +4,6 @@
 
 #include "common/logging/log.h"
 #include "video_core/primitive_assembly.h"
-#include "video_core/pica/regs_pipeline.h"
 #include "video_core/shader/shader.h"
 
 namespace Pica {

@@ -13,12 +13,13 @@
 #include "common/vector_math.h"
 #include "core/core.h"
 #include "core/hle/service/gsp/gsp.h"
+#include "core/hw/hw.h"
 #include "core/hw/gpu.h"
 #include "core/hw/hw.h"
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
 #include "video_core/debugger/debugger.h"
-#include "video_core/pica.h"
+#include "core/hw/pica.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_base.h"
 #include "video_core/utils.h"
@@ -544,7 +545,7 @@ inline void Gpu::Write(u32 addr, const T data) {
                                                                 address);
             }
 
-            system.VideoCore().Pica().ProcessCommandList(buffer, config.size);
+            system.HardwareManager().Pica().ProcessCommandList(buffer, config.size);
 
             regs.command_processor_config.trigger = 0;
         }
@@ -565,7 +566,6 @@ inline void Gpu::Write(u32 addr, const T data) {
     }
 }
 
-// Explicitly instantiate template functions because we aren't defining this in the header:
 template void Gpu::Read<u64>(u64& var, const u32 addr);
 template void Gpu::Read<u32>(u32& var, const u32 addr);
 template void Gpu::Read<u16>(u16& var, const u32 addr);
@@ -577,6 +577,8 @@ template void Gpu::Write<u16>(u32 addr, const u16 data);
 template void Gpu::Write<u8>(u32 addr, const u8 data);
 
 bool Gpu::IsValidAddress(VAddr addr) {
+    if (addr < VADDR_GPU || addr >= VADDR_GPU + 0x10000)
+        return false;
     return true;
 };
 
@@ -605,7 +607,12 @@ u64 Gpu::Read64(VAddr addr) {
 };
 
 bool Gpu::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
-    return true;
+    if (IsValidAddress(src_addr)) {
+        src_addr -= VADDR_GPU;
+        std::memcpy(dest_buffer, &regs + src_addr, size);
+        return true;
+    }
+    return false;
 };
 
 void Gpu::Write8(VAddr addr, u8 data) {
@@ -625,7 +632,11 @@ void Gpu::Write64(VAddr addr, u64 data) {
 };
 
 bool Gpu::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) {
-    return true;
+    if (IsValidAddress(dest_addr)) {
+        dest_addr -= VADDR_GPU;
+        std::memcpy(&regs + dest_addr, src_buffer, size);
+    }
+    return false;
 };
 
 HW::GPU::Regs& Gpu::Regs() {

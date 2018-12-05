@@ -23,10 +23,11 @@
 #include "common/scope_exit.h"
 #include "common/vector_math.h"
 #include "core/frontend/emu_window.h"
+#include "core/hw/hw.h"
 #include "core/memory.h"
 #include "core/settings.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_rasterizer_cache.h"
 #include "video_core/renderer_opengl/gl_state.h"
@@ -1351,7 +1352,7 @@ const CachedTextureCube& RasterizerCacheOpenGL::GetTextureCube(const TextureCube
 
 SurfaceSurfaceRect_Tuple RasterizerCacheOpenGL::GetFramebufferSurfaces(
     bool using_color_fb, bool using_depth_fb, const MathUtil::Rectangle<s32>& viewport_rect) {
-    const auto& regs = Core::System::GetInstance().VideoCore().Pica().State().regs;
+    const auto& regs = Core::System::GetInstance().HardwareManager().Pica().State().regs;
     const auto& config = regs.framebuffer.framebuffer;
 
     // update resolution_scale_factor and reset cache if changed

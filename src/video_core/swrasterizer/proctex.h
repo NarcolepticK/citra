@@ -4,7 +4,7 @@
 
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "video_core/pica/pica_state.h"
+#include "core/hw/pica/pica_state.h"
 
 namespace Pica {
 namespace Rasterizer {

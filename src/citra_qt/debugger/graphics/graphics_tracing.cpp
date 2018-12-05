@@ -20,9 +20,8 @@
 #include "core/hw/lcd.h"
 #include "core/tracer/recorder.h"
 #include "nihstro/float24.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/video_core.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
 
 GraphicsTracingWidget::GraphicsTracingWidget(std::shared_ptr<Pica::DebugContext> debug_context,
                                              QWidget* parent)
@@ -67,7 +66,7 @@ void GraphicsTracingWidget::StartRecording() {
         return;
 
     const auto& hw_manager = Core::System::GetInstance().HardwareManager();
-    const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+    const auto& pica_state = hw_manager.Pica().State();
     const auto shader_binary = pica_state.vs.program_code;
     const auto swizzle_data = pica_state.vs.swizzle_data;
 

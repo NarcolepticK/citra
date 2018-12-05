@@ -62,8 +62,6 @@ inline void Lcd::Write(u32 addr, const T data) {
     }
 }
 
-// Explicitly instantiate template functions because we aren't defining this in the header:
-
 template void Lcd::Read<u64>(u64& var, const u32 addr);
 template void Lcd::Read<u32>(u32& var, const u32 addr);
 template void Lcd::Read<u16>(u16& var, const u32 addr);
@@ -75,6 +73,8 @@ template void Lcd::Write<u16>(u32 addr, const u16 data);
 template void Lcd::Write<u8>(u32 addr, const u8 data);
 
 bool Lcd::IsValidAddress(VAddr addr) {
+    if (addr < VADDR_LCD || addr >= VADDR_LCD + 0x1000)
+        return false;
     return true;
 };
 
@@ -103,7 +103,12 @@ u64 Lcd::Read64(VAddr addr) {
 };
 
 bool Lcd::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
-    return true;
+    if (IsValidAddress(src_addr)) {
+        src_addr -= VADDR_LCD;
+        std::memcpy(dest_buffer, &regs + src_addr, size);
+        return true;
+    }
+    return false;
 };
 
 void Lcd::Write8(VAddr addr, u8 data) {
@@ -123,7 +128,12 @@ void Lcd::Write64(VAddr addr, u64 data) {
 };
 
 bool Lcd::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) {
-    return true;
+    if (IsValidAddress(dest_addr)) {
+        dest_addr -= VADDR_LCD;
+        std::memcpy(&regs + dest_addr, src_buffer, size);
+        return true;
+    }
+    return false;
 };
 
 HW::LCD::Regs& Lcd::Regs() {

@@ -9,13 +9,13 @@
 #include "core/core.h"
 #include "core/memory.h"
 #include "video_core/debugger/debugger.h"
-#include "video_core/pica.h"
-#include "video_core/pica/pica_state.h"
-#include "video_core/pica/pica_types.h"
-#include "video_core/pica/regs_pipeline.h"
+#include "core/hw/hw.h"
+#include "core/hw/pica.h"
+#include "core/hw/pica/pica_state.h"
+#include "core/hw/pica/pica_types.h"
+#include "core/hw/pica/regs_pipeline.h"
 #include "video_core/shader/shader.h"
 #include "video_core/vertex_loader.h"
-#include "video_core/video_core.h"
 
 namespace Pica {
 
@@ -149,7 +149,7 @@ void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
                       input.attr[i][2].ToFloat32(), input.attr[i][3].ToFloat32());
         } else if (vertex_attribute_is_default[i]) {
             // Load the default attribute if we're configured to do so
-            const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+            const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
             input.attr[i] = pica_state.input_default_attributes.attr[i];
             LOG_TRACE(
                 HW_GPU,

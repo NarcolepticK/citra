@@ -7,7 +7,7 @@
 #include <vector>
 #include "common/common_types.h"
 #include "common/vector_math.h"
-#include "video_core/pica/pica_types.h"
+#include "core/hw/pica/pica_types.h"
 
 namespace Pica {
 namespace Shader {

@@ -16,6 +16,7 @@ void HardwareManager::Init() {
 
     gpu->Init();
     lcd->Init();
+    pica->Init();
 
     LOG_DEBUG(HW, "initialized OK");
 }
@@ -24,6 +25,7 @@ void HardwareManager::Init() {
 void HardwareManager::Shutdown() {
     gpu->Shutdown();
     lcd->Shutdown();
+    pica->Shutdown();
 
     LOG_DEBUG(HW, "shutdown OK");
 }
@@ -34,6 +36,7 @@ void HardwareManager::Update() {}
 HardwareManager::HardwareManager(Core::System& system) : system(system) {
     gpu = std::make_shared<HW::GPU::Gpu>(system);
     lcd = std::make_shared<HW::LCD::Lcd>(system);
+    pica = std::make_shared<Pica::Pica>(system);
 }
 
 template <typename T>
@@ -99,7 +102,6 @@ inline void HardwareManager::Write(u32 addr, const T data) {
     }
 }
 
-// Explicitly instantiate template functions because we aren't defining this in the header:
 template void HardwareManager::Read<u64>(u64& var, const u32 addr);
 template void HardwareManager::Read<u32>(u32& var, const u32 addr);
 template void HardwareManager::Read<u16>(u16& var, const u32 addr);
@@ -124,6 +126,14 @@ HW::LCD::Lcd& HardwareManager::Lcd() {
 
 const HW::LCD::Lcd& HardwareManager::Lcd() const {
     return *lcd;
+};
+
+Pica::Pica& HardwareManager::Pica() {
+    return *pica;
+};
+
+const Pica::Pica& HardwareManager::Pica() const {
+    return *pica;
 };
 
 } // namespace HW

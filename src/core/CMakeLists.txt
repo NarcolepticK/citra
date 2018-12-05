@@ -404,6 +404,20 @@ add_library(core STATIC
     hw/hw.h
     hw/lcd.cpp
     hw/lcd.h
+    hw/pica.cpp
+    hw/pica.h
+    hw/pica/command_processor.cpp
+    hw/pica/command_processor.h
+    hw/pica/pica_state.h
+    hw/pica/pica_types.h
+    hw/pica/regs.cpp
+    hw/pica/regs.h
+    hw/pica/regs_framebuffer.h
+    hw/pica/regs_lighting.h
+    hw/pica/regs_pipeline.h
+    hw/pica/regs_rasterizer.h
+    hw/pica/regs_shader.h
+    hw/pica/regs_texturing.h
     hw/y2r.cpp
     hw/y2r.h
     loader/3dsx.cpp

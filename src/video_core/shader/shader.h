@@ -14,9 +14,9 @@
 #include "common/common_types.h"
 #include "common/hash.h"
 #include "common/vector_math.h"
-#include "video_core/pica/pica_types.h"
-#include "video_core/pica/regs_rasterizer.h"
-#include "video_core/pica/regs_shader.h"
+#include "core/hw/pica/pica_types.h"
+#include "core/hw/pica/regs_rasterizer.h"
+#include "core/hw/pica/regs_shader.h"
 
 using nihstro::DestRegister;
 using nihstro::RegisterType;

@@ -9,6 +9,7 @@
 #include "core/hw/aes/key.h"
 #include "core/hw/gpu.h"
 #include "core/hw/lcd.h"
+#include "core/hw/pica.h"
 
 namespace Core {
 class System;
@@ -64,11 +65,14 @@ public:
     HW::LCD::Lcd& Lcd();
     const HW::LCD::Lcd& Lcd() const;
 
+    Pica::Pica& Pica();
+    const Pica::Pica& Pica() const;
 private:
     Core::System& system;
 
     std::shared_ptr<HW::GPU::Gpu> gpu;
     std::shared_ptr<HW::LCD::Lcd> lcd;
+    std::shared_ptr<Pica::Pica> pica;
 };
 
 

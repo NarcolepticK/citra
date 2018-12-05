@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "video_core/pica/command_processor.h"
-#include "video_core/pica/pica_state.h"
+#include "core/hw/pica/command_processor.h"
+#include "core/hw/pica/pica_state.h"
 
 namespace Core {
 class System;
