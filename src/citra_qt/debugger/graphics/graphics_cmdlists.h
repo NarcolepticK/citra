@@ -6,8 +6,7 @@
 
 #include <QAbstractListModel>
 #include <QDockWidget>
-#include "video_core/debug_utils/debug_utils.h"
-#include "video_core/gpu_debugger.h"
+#include "video_core/debugger/debug_utils.h"
 
 class QPushButton;
 class QTreeView;

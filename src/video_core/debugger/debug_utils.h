@@ -177,8 +177,6 @@ private:
     std::list<BreakPointObserver*> breakpoint_observers;
 };
 
-extern std::shared_ptr<DebugContext> g_debug_context; // TODO: Get rid of this global
-
 namespace DebugUtils {
 
 #define PICA_LOG_TEV 0

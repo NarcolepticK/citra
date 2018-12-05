@@ -5,7 +5,7 @@
 #pragma once
 
 #include <QDockWidget>
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debug_utils.h"
 
 /**
  * Utility class which forwards calls to OnPicaBreakPointHit and OnPicaResume to public slots.

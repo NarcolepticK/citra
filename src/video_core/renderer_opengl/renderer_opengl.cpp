@@ -19,7 +19,7 @@
 #include "core/memory.h"
 #include "core/settings.h"
 #include "core/tracer/recorder.h"
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debugger.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
 #include "video_core/video_core.h"
@@ -189,8 +189,9 @@ void RendererOpenGL::SwapBuffers() {
     prev_state.Apply();
     RefreshRasterizerSetting();
 
-    if (Pica::g_debug_context && Pica::g_debug_context->recorder) {
-        Pica::g_debug_context->recorder->FrameFinished();
+    const auto debug_context = &system.DebuggerManager().PicaDebugContext();
+    if (debug_context && debug_context->recorder) {
+        debug_context->recorder->FrameFinished();
     }
 }
 

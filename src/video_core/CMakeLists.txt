@@ -1,11 +1,13 @@
 add_library(video_core STATIC
     command_processor.cpp
     command_processor.h
-    debug_utils/debug_utils.cpp
-    debug_utils/debug_utils.h
+    debugger/debug_utils.cpp
+    debugger/debug_utils.h
+    debugger/debugger.cpp
+    debugger/debugger.h
+    debugger/gpu_debugger.h
     geometry_pipeline.cpp
     geometry_pipeline.h
-    gpu_debugger.h
     pica.cpp
     pica.h
     pica_state.h

@@ -5,9 +5,10 @@
 #include <cstring>
 #include "common/common_types.h"
 #include "common/logging/log.h"
+#include "core/core.h"
 #include "core/hw/lcd.h"
 #include "core/tracer/recorder.h"
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debugger.h"
 
 namespace HW::LCD {
 
@@ -53,9 +54,10 @@ inline void Lcd::Write(u32 addr, const T data) {
 
     // Notify tracer about the register write
     // This is happening *after* handling the write to make sure we properly catch all memory reads.
-    if (Pica::g_debug_context && Pica::g_debug_context->recorder) {
+    const auto debug_context = &system.DebuggerManager().PicaDebugContext();
+    if (debug_context && debug_context->recorder) {
         // addr + GPU VBase - IO VBase + IO PBase
-        Pica::g_debug_context->recorder->RegisterWritten<T>(
+        debug_context->recorder->RegisterWritten<T>(
             addr + VADDR_LCD - VADDR_BASE + PADDR_BASE, data);
     }
 }

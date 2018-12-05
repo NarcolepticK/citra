@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <QDockWidget>
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debug_utils.h"
 
 class QLabel;
 class QPushButton;

@@ -22,7 +22,7 @@
 #include "common/logging/log.h"
 #include "common/math_util.h"
 #include "common/vector_math.h"
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debug_utils.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
 #include "video_core/rasterizer_interface.h"
@@ -79,8 +79,6 @@ void DebugContext::Resume() {
 
     resume_from_breakpoint.notify_one();
 }
-
-std::shared_ptr<DebugContext> g_debug_context; // TODO: Get rid of this global
 
 namespace DebugUtils {
 

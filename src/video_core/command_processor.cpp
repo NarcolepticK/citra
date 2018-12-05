@@ -14,7 +14,7 @@
 #include "core/memory.h"
 #include "core/tracer/recorder.h"
 #include "video_core/command_processor.h"
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debugger.h"
 #include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
@@ -121,11 +121,13 @@ static void WriteUniformFloatReg(ShaderRegs& config, Shader::ShaderSetup& setup,
 }
 
 static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
-    auto& video_core = Core::System::GetInstance().VideoCore();
+    auto& system = Core::System::GetInstance();
+    auto& video_core = system.VideoCore();
     auto& pica_state = video_core.Pica().State();
     auto& regs = pica_state.regs;
     const auto& settings = video_core.Settings();
     const auto rasterizer = video_core.Renderer().Rasterizer();
+    const auto debug_context = &system.DebuggerManager().PicaDebugContext();
 
     if (id >= Regs::NUM_REGS) {
         LOG_ERROR(
@@ -146,8 +148,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
         DebugUtils::OnPicaRegWrite({static_cast<u16>(id), static_cast<u16>(mask), regs.reg_array[id]});
     }
 
-    if (g_debug_context)
-        g_debug_context->OnEvent(DebugContext::Event::PicaCommandLoaded,
+    if (debug_context)
+        debug_context->OnEvent(DebugContext::Event::PicaCommandLoaded,
                                  reinterpret_cast<void*>(&id));
 
     switch (id) {
@@ -232,9 +234,9 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
                     shader_engine->SetupBatch(pica_state.vs, regs.vs.main_offset);
 
                     // Send to vertex shader
-                    if (g_debug_context)
-                        g_debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
-                                                 static_cast<void*>(&immediate_input));
+                    if (debug_context)
+                        debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
+                                                 reinterpret_cast<void*>(&immediate_input));
                     Shader::UnitState shader_unit;
                     Shader::AttributeBuffer output{};
 
@@ -255,8 +257,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
                     // change it to flush triangles whenever a drawing config register changes
                     // See: https://github.com/citra-emu/citra/pull/2866#issuecomment-327011550
                     rasterizer->DrawTriangles();
-                    if (g_debug_context) {
-                        g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
+                    if (debug_context) {
+                        debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch,
                                                  nullptr);
                     }
                 }
@@ -273,7 +275,7 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
     case PICA_REG_INDEX_WORKAROUND(pipeline.command_buffer.trigger[1], 0x23d): {
         const unsigned index =
             static_cast<unsigned>(id - PICA_REG_INDEX(pipeline.command_buffer.trigger[0]));
-        u32* head_ptr = reinterpret_cast<u32*>(Core::System::GetInstance().Memory().GetPhysicalPointer(
+        u32* head_ptr = reinterpret_cast<u32*>(system.Memory().GetPhysicalPointer(
             regs.pipeline.command_buffer.GetPhysicalAddress(index)));
         pica_state.cmd_list.head_ptr = pica_state.cmd_list.current_ptr = head_ptr;
         pica_state.cmd_list.length = regs.pipeline.command_buffer.GetSize(index) / sizeof(u32);
@@ -288,8 +290,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
 #if PICA_LOG_TEV
         DebugUtils::DumpTevStageConfig(regs.GetTevStages());
 #endif
-        if (g_debug_context)
-            g_debug_context->OnEvent(DebugContext::Event::IncomingPrimitiveBatch, nullptr);
+        if (debug_context)
+            debug_context->OnEvent(DebugContext::Event::IncomingPrimitiveBatch, nullptr);
 
         const PrimitiveAssembler<Shader::OutputVertex>& primitive_assembler = pica_state.primitive_assembler;
 
@@ -317,8 +319,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
         if (accelerate_draw &&
             rasterizer->AccelerateDrawBatch(is_indexed)) {
-            if (g_debug_context) {
-                g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+            if (debug_context) {
+                debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
             }
             break;
         }
@@ -333,18 +335,18 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
         // Load vertices
         const auto& index_info = regs.pipeline.index_array;
         const u8* index_address_8 =
-            Core::System::GetInstance().Memory().GetPhysicalPointer(base_address + index_info.offset);
+            system.Memory().GetPhysicalPointer(base_address + index_info.offset);
         const u16* index_address_16 = reinterpret_cast<const u16*>(index_address_8);
         const bool index_u16 = index_info.format != 0;
 
-        if (g_debug_context && g_debug_context->recorder) {
+        if (debug_context && debug_context->recorder) {
             for (int i = 0; i < 3; ++i) {
                 const auto texture = regs.texturing.GetTextures()[i];
                 if (!texture.enabled)
                     continue;
 
-                const u8* texture_data = Core::System::GetInstance().Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
-                g_debug_context->recorder->MemoryAccessed(
+                const u8* texture_data = system.Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
+                debug_context->recorder->MemoryAccessed(
                     texture_data,
                     TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width /
                         2 * texture.config.height,
@@ -388,7 +390,7 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
                     continue;
                 }
 
-                if (g_debug_context && g_debug_context->recorder) {
+                if (debug_context && debug_context->recorder) {
                     const int size = index_u16 ? 2 : 1;
                     memory_accesses.AddAccess(base_address + index_info.offset + size * index,
                                               size);
@@ -409,8 +411,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
                 loader.LoadVertex(base_address, index, vertex, input, memory_accesses);
 
                 // Send to vertex shader
-                if (g_debug_context)
-                    g_debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
+                if (debug_context)
+                    debug_context->OnEvent(DebugContext::Event::VertexShaderInvocation,
                                              reinterpret_cast<void*>(&input));
                 shader_unit.LoadInput(regs.vs, input);
                 shader_engine->Run(pica_state.vs, shader_unit);
@@ -429,13 +431,13 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
         }
 
         for (auto& range : memory_accesses.ranges) {
-            g_debug_context->recorder->MemoryAccessed(
-                Core::System::GetInstance().Memory().GetPhysicalPointer(range.first), range.second, range.first);
+            debug_context->recorder->MemoryAccessed(system.Memory().GetPhysicalPointer(range.first),
+                                                      range.second, range.first);
         }
 
         rasterizer->DrawTriangles();
-        if (g_debug_context) {
-            g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+        if (debug_context) {
+            debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
         }
 
         break;
@@ -651,8 +653,8 @@ static void WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
     rasterizer->NotifyPicaRegisterChanged(id);
 
-    if (g_debug_context)
-        g_debug_context->OnEvent(DebugContext::Event::PicaCommandProcessed,
+    if (debug_context)
+        debug_context->OnEvent(DebugContext::Event::PicaCommandProcessed,
                                  reinterpret_cast<void*>(&id));
 }
 

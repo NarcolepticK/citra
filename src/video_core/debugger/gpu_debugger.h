@@ -9,6 +9,8 @@
 #include <vector>
 #include "core/hle/service/gsp/gsp.h"
 
+namespace Debugger {
+
 class GraphicsDebugger {
 public:
     // Base class for all objects which need to be notified about GPU events
@@ -83,3 +85,4 @@ private:
 
     std::vector<Service::GSP::Command> gx_command_history;
 };
+} // namespace Debugger

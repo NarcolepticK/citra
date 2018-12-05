@@ -9,7 +9,6 @@
 #include "video_core/pica.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
-#include "video_core/gpu_debugger.h"
 #include "video_core/video_core.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

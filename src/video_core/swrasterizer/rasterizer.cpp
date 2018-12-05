@@ -17,7 +17,6 @@
 #include "core/core.h"
 #include "core/hw/gpu.h"
 #include "core/memory.h"
-#include "video_core/debug_utils/debug_utils.h"
 #include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"

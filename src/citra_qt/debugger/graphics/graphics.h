@@ -6,10 +6,10 @@
 
 #include <QAbstractListModel>
 #include <QDockWidget>
-#include "video_core/gpu_debugger.h"
+#include "video_core/debugger/gpu_debugger.h"
 
 class GPUCommandStreamItemModel : public QAbstractListModel,
-                                  public GraphicsDebugger::DebuggerObserver {
+                                  public Debugger::GraphicsDebugger::DebuggerObserver {
     Q_OBJECT
 
 public:
@@ -35,7 +35,7 @@ class GPUCommandStreamWidget : public QDockWidget {
     Q_OBJECT
 
 public:
-    GPUCommandStreamWidget(QWidget* parent = nullptr);
+    GPUCommandStreamWidget(Debugger::GraphicsDebugger* debugger = nullptr, QWidget* parent = nullptr);
 
 private:
 };

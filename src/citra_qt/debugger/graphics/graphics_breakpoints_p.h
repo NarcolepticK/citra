@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <QAbstractListModel>
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debug_utils.h"
 
 class BreakPointModel : public QAbstractListModel {
     Q_OBJECT

@@ -452,7 +452,7 @@ private:
 
     ResultCode SetBufferSwap(u32 screen_id, const FrameBufferInfo& info);
 
-    void ExecuteCommand(const Command& command, u32 thread_id);
+    void ExecuteCommand(Command& command, u32 thread_id);
 
     Core::System& system;
 

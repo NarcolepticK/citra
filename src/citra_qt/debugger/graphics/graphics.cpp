@@ -6,8 +6,6 @@
 #include "citra_qt/debugger/graphics/graphics.h"
 #include "citra_qt/util/util.h"
 
-extern GraphicsDebugger g_debugger;
-
 GPUCommandStreamItemModel::GPUCommandStreamItemModel(QObject* parent)
     : QAbstractListModel(parent), command_count(0) {
     connect(this, &GPUCommandStreamItemModel::GXCommandFinished, this,
@@ -63,12 +61,12 @@ void GPUCommandStreamItemModel::OnGXCommandFinishedInternal(int total_command_co
     emit dataChanged(index(prev_command_count, 0), index(total_command_count - 1, 0));
 }
 
-GPUCommandStreamWidget::GPUCommandStreamWidget(QWidget* parent)
+GPUCommandStreamWidget::GPUCommandStreamWidget(Debugger::GraphicsDebugger* debugger, QWidget* parent)
     : QDockWidget(tr("Graphics Debugger"), parent) {
     setObjectName("GraphicsDebugger");
 
     GPUCommandStreamItemModel* command_model = new GPUCommandStreamItemModel(this);
-    g_debugger.RegisterObserver(command_model);
+    debugger->RegisterObserver(command_model);
 
     QListView* command_list = new QListView;
     command_list->setModel(command_model);

@@ -55,6 +55,10 @@ namespace VideoCore {
 class VideoCore;
 }
 
+namespace Debugger {
+class DebuggerManager;
+}
+
 namespace Core {
 
 class Timing;
@@ -224,6 +228,11 @@ public:
     /// Gets a const reference to the video core
     const VideoCore::VideoCore& VideoCore() const;
 
+    Debugger::DebuggerManager& DebuggerManager();
+    const Debugger::DebuggerManager& DebuggerManager() const;
+
+    void SetDebuggerManager(std::shared_ptr<Debugger::DebuggerManager> debug_manager);
+
     PerfStats perf_stats;
     FrameLimiter frame_limiter;
 
@@ -292,6 +301,8 @@ private:
 
     /// VideoCore
     std::unique_ptr<VideoCore::VideoCore> video_core;
+
+    std::shared_ptr<Debugger::DebuggerManager> debugger_manager;
 
 #ifdef ENABLE_SCRIPTING
     /// RPC Server for scripting support

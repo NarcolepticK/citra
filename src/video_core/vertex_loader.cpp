@@ -8,7 +8,7 @@
 #include "common/vector_math.h"
 #include "core/core.h"
 #include "core/memory.h"
-#include "video_core/debug_utils/debug_utils.h"
+#include "video_core/debugger/debugger.h"
 #include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/pica_types.h"
@@ -77,6 +77,7 @@ void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
                               Shader::AttributeBuffer& input,
                               DebugUtils::MemoryAccessTracker& memory_accesses) {
     ASSERT_MSG(is_setup, "A VertexLoader needs to be setup before loading vertices.");
+    const auto debug_context = &Core::System::GetInstance().DebuggerManager().PicaDebugContext();
 
     for (int i = 0; i < num_total_attributes; ++i) {
         if (vertex_attribute_elements[i] != 0) {
@@ -84,7 +85,7 @@ void VertexLoader::LoadVertex(u32 base_address, int index, int vertex,
             u32 source_addr =
                 base_address + vertex_attribute_sources[i] + vertex_attribute_strides[i] * vertex;
 
-            if (g_debug_context && g_debug_context->recorder) {
+            if (debug_context && debug_context->recorder) {
                 memory_accesses.AddAccess(
                     source_addr,
                     vertex_attribute_elements[i] *

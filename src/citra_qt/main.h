@@ -43,6 +43,9 @@ class WaitTreeWidget;
 namespace DiscordRPC {
 class DiscordInterface;
 }
+namespace Debugger {
+class DebuggerManager;
+}
 
 class GMainWindow : public QMainWindow {
     Q_OBJECT
@@ -216,6 +219,8 @@ private:
 
     MultiplayerState* multiplayer_state = nullptr;
     std::unique_ptr<Config> config;
+
+    std::shared_ptr<Debugger::DebuggerManager> debugger_manager;
 
     // Whether emulation is currently running in Citra.
     bool emulation_running = false;

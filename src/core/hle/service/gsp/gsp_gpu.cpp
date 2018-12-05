@@ -18,13 +18,9 @@
 #include "core/hw/hw.h"
 #include "core/hw/lcd.h"
 #include "core/memory.h"
-#include "video_core/debug_utils/debug_utils.h"
-#include "video_core/gpu_debugger.h"
+#include "video_core/debugger/debugger.h"
 
 MICROPROFILE_DEFINE(GPU_GSP_DMA, "GPU", "GSP DMA", MP_RGB(100, 0, 255));
-
-// Main graphics debugger object - TODO: Here is probably not the best place for this
-GraphicsDebugger g_debugger;
 
 namespace Service::GSP {
 
@@ -168,8 +164,9 @@ void GSP_GPU::TriggerCmdReqQueue(Kernel::HLERequestContext& ctx) {
         CommandBuffer* command_buffer = (CommandBuffer*)GetCommandBuffer(shared_memory, thread_id);
 
         // Iterate through each command...
+        auto& gpu_debugger = system.DebuggerManager().GraphicsDebugger();
         for (unsigned i = 0; i < command_buffer->number_commands; ++i) {
-            g_debugger.GXCommandProcessed((u8*)&command_buffer->commands[i]);
+            gpu_debugger.GXCommandProcessed(reinterpret_cast<u8*>(&command_buffer->commands[i]));
 
             // Decode and execute command
             ExecuteCommand(command_buffer->commands[i], thread_id);
@@ -580,8 +577,9 @@ ResultCode GSP_GPU::SetBufferSwap(u32 screen_id, const FrameBufferInfo& info) {
         base_address + 4 * static_cast<u32>(GPU_REG_INDEX(framebuffer_config[screen_id].active_fb)),
         info.shown_fb);
 
-    if (Pica::g_debug_context)
-        Pica::g_debug_context->OnEvent(Pica::DebugContext::Event::BufferSwapped, nullptr);
+    auto& pica_debug_context = system.DebuggerManager().PicaDebugContext();
+    if (&pica_debug_context)
+        pica_debug_context.OnEvent(Pica::DebugContext::Event::BufferSwapped, nullptr);
 
     if (screen_id == 0) {
         MicroProfileFlip();
@@ -591,7 +589,7 @@ ResultCode GSP_GPU::SetBufferSwap(u32 screen_id, const FrameBufferInfo& info) {
     return RESULT_SUCCESS;
 }
 
-void GSP_GPU::ExecuteCommand(const Command& command, u32 thread_id) {
+void GSP_GPU::ExecuteCommand(Command& command, u32 thread_id) {
     switch (command.id) {
 
     // GX request DMA - typically used for copying memory from GSP heap to VRAM
@@ -711,12 +709,14 @@ void GSP_GPU::ExecuteCommand(const Command& command, u32 thread_id) {
     }
 
     default:
-        LOG_ERROR(Service_GSP, "unknown command 0x{:08X}", (int)command.id.Value());
+        LOG_ERROR(Service_GSP, "unknown command 0x{:08X}", static_cast<int>(command.id.Value()));
     }
 
-    if (Pica::g_debug_context)
-        Pica::g_debug_context->OnEvent(Pica::DebugContext::Event::GSPCommandProcessed,
-                                       (void*)&command);
+    const auto debug_context = &system.DebuggerManager().PicaDebugContext();
+    if (debug_context) {
+        debug_context->OnEvent(Pica::DebugContext::Event::GSPCommandProcessed,
+                               reinterpret_cast<void*>(&command));
+    }
 }
 
 GSP_GPU::GSP_GPU(Core::System& system) : ServiceFramework("gsp::Gpu", 2), system(system) {

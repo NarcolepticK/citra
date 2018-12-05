@@ -65,6 +65,7 @@
 #include "core/movie.h"
 #include "core/settings.h"
 #include "game_list_p.h"
+#include "video_core/debugger/debugger.h"
 
 #ifdef USE_DISCORD_PRESENCE
 #include "citra_qt/discord_impl.h"
@@ -121,7 +122,7 @@ static void InitializeLogging() {
 #endif
 }
 
-GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
+GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr), debugger_manager(std::make_shared<Debugger::DebuggerManager>()) {
     InitializeLogging();
     Debugger::ToggleConsole();
     Settings::LogSettings();
@@ -132,7 +133,6 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
 
     LoadTranslation();
 
-    Pica::g_debug_context = Pica::DebugContext::Construct();
     setAcceptDrops(true);
     ui.setupUi(this);
     statusBar()->hide();
@@ -184,7 +184,8 @@ GMainWindow::~GMainWindow() {
     if (render_window->parent() == nullptr)
         delete render_window;
 
-    Pica::g_debug_context.reset();
+    debugger_manager->Reset();
+    //Pica::g_debug_context.reset();
     Network::Shutdown();
 }
 
@@ -275,7 +276,7 @@ void GMainWindow::InitializeDebugWidgets() {
     connect(this, &GMainWindow::EmulationStopping, registersWidget,
             &RegistersWidget::OnEmulationStopping);
 
-    graphicsWidget = new GPUCommandStreamWidget(this);
+    graphicsWidget = new GPUCommandStreamWidget(&debugger_manager->GraphicsDebugger(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsWidget);
     graphicsWidget->hide();
     debug_menu->addAction(graphicsWidget->toggleViewAction());
@@ -285,17 +286,17 @@ void GMainWindow::InitializeDebugWidgets() {
     graphicsCommandsWidget->hide();
     debug_menu->addAction(graphicsCommandsWidget->toggleViewAction());
 
-    graphicsBreakpointsWidget = new GraphicsBreakPointsWidget(Pica::g_debug_context, this);
+    graphicsBreakpointsWidget = new GraphicsBreakPointsWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsBreakpointsWidget);
     graphicsBreakpointsWidget->hide();
     debug_menu->addAction(graphicsBreakpointsWidget->toggleViewAction());
 
-    graphicsVertexShaderWidget = new GraphicsVertexShaderWidget(Pica::g_debug_context, this);
+    graphicsVertexShaderWidget = new GraphicsVertexShaderWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsVertexShaderWidget);
     graphicsVertexShaderWidget->hide();
     debug_menu->addAction(graphicsVertexShaderWidget->toggleViewAction());
 
-    graphicsTracingWidget = new GraphicsTracingWidget(Pica::g_debug_context, this);
+    graphicsTracingWidget = new GraphicsTracingWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsTracingWidget);
     graphicsTracingWidget->hide();
     debug_menu->addAction(graphicsTracingWidget->toggleViewAction());
@@ -717,6 +718,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
     }
 
     Core::System& system{Core::System::GetInstance()};
+    system.SetDebuggerManager(debugger_manager);
     const Core::System::ResultStatus result{system.Load(*render_window, filename.toStdString())};
 
     if (result != Core::System::ResultStatus::Success) {
@@ -862,7 +864,7 @@ void GMainWindow::ShutdownGame() {
     // breakpoint after (or before) RequestStop() is called, the emulation would never be able
     // to continue out to the main loop and terminate. Thus wait() would hang forever.
     // TODO(bunnei): This function is not thread safe, but it's being used as if it were
-    Pica::g_debug_context->ClearBreakpoints();
+    Core::System::GetInstance().DebuggerManager().PicaDebugContext().ClearBreakpoints();
 
     // Frame advancing must be cancelled in order to release the emu thread from waiting
     Core::System::GetInstance().frame_limiter.SetFrameAdvancing(false);
@@ -1406,7 +1408,7 @@ void GMainWindow::OnToggleFilterBar() {
 }
 
 void GMainWindow::OnCreateGraphicsSurfaceViewer() {
-    auto graphicsSurfaceViewerWidget = new GraphicsSurfaceWidget(Pica::g_debug_context, this);
+    auto graphicsSurfaceViewerWidget = new GraphicsSurfaceWidget(debugger_manager->SharedPicaDebugContext(), this);
     addDockWidget(Qt::RightDockWidgetArea, graphicsSurfaceViewerWidget);
     // TODO: Maybe graphicsSurfaceViewerWidget->setFloating(true);
     graphicsSurfaceViewerWidget->show();

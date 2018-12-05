@@ -19,7 +19,6 @@
 #include "common/vector_math.h"
 #include "core/core.h"
 #include "core/memory.h"
-#include "video_core/debug_utils/debug_utils.h"
 #include "video_core/pica.h"
 #include "video_core/pica_state.h"
 #include "video_core/regs.h"
@@ -165,7 +164,8 @@ void GPUCommandListWidget::SetCommandInfo(const QModelIndex& index) {
             texture_index = 2;
         }
 
-        const auto texture = Core::System::GetInstance().VideoCore().Pica().State().regs.texturing.GetTextures()[texture_index];
+        const auto& pica_state = Core::System::GetInstance().VideoCore().Pica().State();
+        const auto texture = pica_state.regs.texturing.GetTextures()[texture_index];
         const auto config = texture.config;
         const auto format = texture.format;
 

@@ -33,6 +33,7 @@
 #include "core/settings.h"
 #include "network/network.h"
 #include "video_core/video_core.h"
+#include "video_core/debugger/debugger.h"
 
 namespace Core {
 
@@ -286,6 +287,18 @@ VideoCore::VideoCore& System::VideoCore() {
 
 const VideoCore::VideoCore& System::VideoCore() const {
     return *video_core;
+}
+
+Debugger::DebuggerManager& System::DebuggerManager() {
+    return *debugger_manager;
+}
+
+const Debugger::DebuggerManager& System::DebuggerManager() const {
+    return *debugger_manager;
+}
+
+void System::SetDebuggerManager(std::shared_ptr<Debugger::DebuggerManager> debug_manager) {
+    debugger_manager = std::move(debug_manager);
 }
 
 void System::RegisterSoftwareKeyboard(std::shared_ptr<Frontend::SoftwareKeyboard> swkbd) {
