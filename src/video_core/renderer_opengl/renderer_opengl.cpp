@@ -117,8 +117,6 @@ void RendererOpenGL::SwapBuffers() {
         HW::LCD::Regs::ColorFill color_fill = {0};
         system.HardwareManager().Lcd().Read(color_fill.raw, lcd_color_addr);
 
-        system.HardwareManager().Read(color_fill.raw, lcd_color_addr);
-
         if (color_fill.is_enabled) {
             LoadColorToActiveGLTexture(color_fill.color_r, color_fill.color_g, color_fill.color_b,
                                        screen_infos[i].texture);
@@ -143,7 +141,8 @@ void RendererOpenGL::SwapBuffers() {
         }
     }
 
-    if (VideoCore::g_renderer_screenshot_requested) {
+    auto& settings = system.VideoCore().Settings();
+    if (settings.renderer_screenshot_requested) {
         // Draw this frame to the screenshot framebuffer
         screenshot_framebuffer.Create();
         GLuint old_read_fb = state.draw.read_framebuffer;
@@ -151,7 +150,7 @@ void RendererOpenGL::SwapBuffers() {
         state.draw.read_framebuffer = state.draw.draw_framebuffer = screenshot_framebuffer.handle;
         state.Apply();
 
-        Layout::FramebufferLayout layout{VideoCore::g_screenshot_framebuffer_layout};
+        Layout::FramebufferLayout layout{settings.screenshot_framebuffer_layout};
 
         GLuint renderbuffer;
         glGenRenderbuffers(1, &renderbuffer);
@@ -163,7 +162,7 @@ void RendererOpenGL::SwapBuffers() {
         DrawScreens(layout);
 
         glReadPixels(0, 0, layout.width, layout.height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
-                     VideoCore::g_screenshot_bits);
+                     settings.screenshot_bits);
 
         screenshot_framebuffer.Release();
         state.draw.read_framebuffer = old_read_fb;
@@ -171,8 +170,8 @@ void RendererOpenGL::SwapBuffers() {
         state.Apply();
         glDeleteRenderbuffers(1, &renderbuffer);
 
-        VideoCore::g_screenshot_complete_callback();
-        VideoCore::g_renderer_screenshot_requested = false;
+        settings.screenshot_complete_callback();
+        settings.renderer_screenshot_requested = false;
     }
 
     DrawScreens(render_window.GetFramebufferLayout());
@@ -229,7 +228,7 @@ void RendererOpenGL::LoadFBToScreenInfo(const HW::GPU::FramebufferConfig& frameb
         screen_info.display_texture = screen_info.texture.resource.handle;
         screen_info.display_texcoords = MathUtil::Rectangle<float>(0.f, 0.f, 1.f, 1.f);
 
-        system.Memory().RasterizerFlushRegion(framebuffer_addr, framebuffer.stride * framebuffer.height);
+        Memory::RasterizerFlushRegion(framebuffer_addr, framebuffer.stride * framebuffer.height);
 
         const u8* framebuffer_data = system.Memory().GetPhysicalPointer(framebuffer_addr);
 

@@ -337,11 +337,12 @@ void GRenderWindow::InitRenderTarget() {
 }
 
 void GRenderWindow::CaptureScreenshot(u16 res_scale, const QString& screenshot_path) {
+    auto& video_core = Core::System::GetInstance().VideoCore();
     if (!res_scale)
-        res_scale = VideoCore::GetResolutionScaleFactor();
+        res_scale = video_core.GetResolutionScaleFactor();
     const Layout::FramebufferLayout layout{Layout::FrameLayoutFromResolutionScale(res_scale)};
     screenshot_image = QImage(QSize(layout.width, layout.height), QImage::Format_RGB32);
-    VideoCore::RequestScreenshot(screenshot_image.bits(),
+    video_core.RequestScreenshot(screenshot_image.bits(),
                                  [=] {
                                      screenshot_image.mirrored(false, true).save(screenshot_path);
                                      LOG_INFO(Frontend, "The screenshot is saved.");

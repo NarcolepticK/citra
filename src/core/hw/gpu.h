@@ -40,12 +40,6 @@ namespace Core {
 class System;
 }
 
-namespace Service {
-namespace GSP {
-class GSP_GPU;
-} // namespace GSP
-} // namespace Service
-
 namespace HW::GPU {
 
 // Components are laid out in reverse byte order, most significant bits first.
@@ -305,5 +299,4 @@ private:
     /// Event id for CoreTiming
     Core::TimingEventType* vblank_event;
 };
-
 } // namespace HW::GPU

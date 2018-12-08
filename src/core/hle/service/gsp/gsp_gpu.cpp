@@ -223,7 +223,6 @@ void GSP_GPU::RegisterInterruptRelayQueue(Kernel::HLERequestContext& ctx) {
 
 void GSP_GPU::UnregisterInterruptRelayQueue(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x14, 0, 0);
-
     SessionData* session_data = GetSessionData(ctx.Session());
     session_data->interrupt_event = nullptr;
     session_data->registered = false;
@@ -310,8 +309,7 @@ void GSP_GPU::ImportDisplayCaptureInfo(Kernel::HLERequestContext& ctx) {
 
 void GSP_GPU::SetLedForceOff(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x1C, 1, 0);
-
-    u8 state = rp.Pop<u8>();
+    const u8 state = rp.Pop<u8>();
 
     system.Kernel().GetSharedPageHandler().Set3DLed(state);
 
@@ -322,7 +320,6 @@ void GSP_GPU::SetLedForceOff(Kernel::HLERequestContext& ctx) {
 
 void GSP_GPU::StoreDataCache(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx, 0x1F, 2, 2);
-
     const u32 address = rp.Pop<u32>();
     const u32 size = rp.Pop<u32>();
     const auto process = rp.PopObject<Kernel::Process>();
@@ -610,8 +607,9 @@ void GSP_GPU::ExecuteCommand(Command& command, u32 thread_id) {
 
         // TODO(Subv): These memory accesses should not go through the application's memory mapping.
         // They should go through the GSP module's memory mapping.
-        Memory::CopyBlock(*system.Kernel().GetCurrentProcess(), command.dma_request.dest_address,
-                          command.dma_request.source_address, command.dma_request.size);
+        system.Memory().CopyBlock(*system.Kernel().GetCurrentProcess(),
+                                  command.dma_request.dest_address,
+                                  command.dma_request.source_address, command.dma_request.size);
         SignalInterrupt(InterruptId::DMA);
         break;
     }

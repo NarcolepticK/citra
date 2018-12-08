@@ -16,14 +16,13 @@
 #include "common/scope_exit.h"
 #include "common/vector_math.h"
 #include "core/core.h"
-#include "core/hw/hw.h"
 #include "core/hw/gpu.h"
+#include "core/hw/hw.h"
 #include "core/hw/pica.h"
 #include "core/hw/pica/pica_state.h"
 #include "core/hw/pica/regs_framebuffer.h"
 #include "core/hw/pica/regs_rasterizer.h"
 #include "core/hw/pica/regs_texturing.h"
-#include "video_core/video_core.h"
 #include "video_core/renderer_opengl/gl_rasterizer.h"
 #include "video_core/renderer_opengl/gl_shader_gen.h"
 #include "video_core/renderer_opengl/pica_to_gl.h"
@@ -265,7 +264,8 @@ RasterizerOpenGL::VertexArrayInfo RasterizerOpenGL::AnalyzeVertexArray(bool is_i
     if (is_indexed) {
         const auto& index_info = regs.pipeline.index_array;
         PAddr address = vertex_attributes.GetPhysicalBaseAddress() + index_info.offset;
-        const u8* index_address_8 = VideoCore::g_memory->GetPhysicalPointer(address);
+        const u8* index_address_8 =
+            Core::System::GetInstance().Memory().GetPhysicalPointer(address);
         const u16* index_address_16 = reinterpret_cast<const u16*>(index_address_8);
         bool index_u16 = index_info.format != 0;
 
@@ -347,7 +347,8 @@ void RasterizerOpenGL::SetupVertexArray(u8* array_ptr, GLintptr buffer_offset,
         u32 data_size = loader.byte_count * vertex_num;
 
         res_cache.FlushRegion(data_addr, data_size, nullptr);
-        std::memcpy(array_ptr, VideoCore::g_memory->GetPhysicalPointer(data_addr), data_size);
+        std::memcpy(array_ptr, Core::System::GetInstance().Memory().GetPhysicalPointer(data_addr),
+                    data_size);
 
         array_ptr += data_size;
         buffer_offset += data_size;
@@ -480,7 +481,7 @@ bool RasterizerOpenGL::AccelerateDrawBatchInternal(bool is_indexed, bool use_gs)
             return false;
         }
 
-        const u8* index_data = VideoCore::g_memory->GetPhysicalPointer(
+        const u8* index_data = Core::System::GetInstance().Memory().GetPhysicalPointer(
             regs.pipeline.vertex_attributes.GetPhysicalBaseAddress() +
             regs.pipeline.index_array.offset);
         std::tie(buffer_ptr, buffer_offset, std::ignore) = index_buffer.Map(index_buffer_size, 4);
@@ -1386,10 +1387,12 @@ bool RasterizerOpenGL::AccelerateDisplayTransfer(const HW::GPU::DisplayTransferC
 
     SurfaceParams dst_params;
     dst_params.addr = HW::GPU::Gpu::DecodeAddressRegister(config.output_address);
-    dst_params.width = config.scaling != HW::GPU::ScalingMode::NoScale ? config.output_width.Value() / 2
-                                                        : config.output_width.Value();
-    dst_params.height = config.scaling == HW::GPU::ScalingMode::ScaleXY ? config.output_height.Value() / 2
-                                                         : config.output_height.Value();
+    dst_params.width = config.scaling != HW::GPU::ScalingMode::NoScale
+                           ? config.output_width.Value() / 2
+                           : config.output_width.Value();
+    dst_params.height = config.scaling == HW::GPU::ScalingMode::ScaleXY
+                            ? config.output_height.Value() / 2
+                            : config.output_height.Value();
     dst_params.is_tiled = config.input_linear != config.dont_swizzle;
     dst_params.pixel_format = SurfaceParams::PixelFormatFromGPUPixelFormat(config.output_format);
     dst_params.UpdateParams();
@@ -1887,7 +1890,7 @@ void RasterizerOpenGL::SyncLightSpotDirection(int light_index) {
     const auto& pica_state = Core::System::GetInstance().HardwareManager().Pica().State();
     const auto& light = pica_state.regs.lighting.light[light_index];
     const GLvec3 spot_direction = {light.spot_x / 2047.0f, light.spot_y / 2047.0f,
-                             light.spot_z / 2047.0f};
+                                   light.spot_z / 2047.0f};
 
     if (spot_direction != uniform_block_data.data.light_src[light_index].spot_direction) {
         uniform_block_data.data.light_src[light_index].spot_direction = spot_direction;
@@ -2044,9 +2047,8 @@ void RasterizerOpenGL::SyncAndUploadLUTs() {
     if (uniform_block_data.proctex_lut_dirty || invalidate) {
         std::array<GLvec4, 256> new_data;
 
-        std::transform(pica_state.proctex.color_table.begin(),
-                       pica_state.proctex.color_table.end(), new_data.begin(),
-                       [](const auto& entry) {
+        std::transform(pica_state.proctex.color_table.begin(), pica_state.proctex.color_table.end(),
+                       new_data.begin(), [](const auto& entry) {
                            auto rgba = entry.ToVector() / 255.0f;
                            return GLvec4{rgba.r(), rgba.g(), rgba.b(), rgba.a()};
                        });

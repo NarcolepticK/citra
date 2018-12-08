@@ -76,31 +76,31 @@ bool Lcd::IsValidAddress(VAddr addr) {
     if (addr < VADDR_LCD || addr >= VADDR_LCD + 0x1000)
         return false;
     return true;
-};
+}
 
 u8 Lcd::Read8(VAddr addr) {
     u8 var;
     Read<u8>(var, addr);
     return var;
-};
+}
 
 u16 Lcd::Read16(VAddr addr) {
     u16 var;
     Read<u16>(var, addr);
     return var;
-};
+}
 
 u32 Lcd::Read32(VAddr addr) {
     u32 var;
     Read<u32>(var, addr);
     return var;
-};
+}
 
 u64 Lcd::Read64(VAddr addr) {
     u64 var;
     Read<u64>(var, addr);
     return var;
-};
+}
 
 bool Lcd::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
     if (IsValidAddress(src_addr)) {
@@ -109,23 +109,23 @@ bool Lcd::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
         return true;
     }
     return false;
-};
+}
 
 void Lcd::Write8(VAddr addr, u8 data) {
     Write<u8>(addr, data);
-};
+}
 
 void Lcd::Write16(VAddr addr, u16 data) {
     Write<u16>(addr, data);
-};
+}
 
 void Lcd::Write32(VAddr addr, u32 data) {
     Write<u32>(addr, data);
-};
+}
 
 void Lcd::Write64(VAddr addr, u64 data) {
     Write<u64>(addr, data);
-};
+}
 
 bool Lcd::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) {
     if (IsValidAddress(dest_addr)) {
@@ -134,14 +134,14 @@ bool Lcd::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) 
         return true;
     }
     return false;
-};
+}
 
 HW::LCD::Regs& Lcd::Regs() {
     return regs;
-};
+}
 
 const HW::LCD::Regs& Lcd::Regs() const {
     return regs;
-};
+}
 
 } // namespace HW::LCD

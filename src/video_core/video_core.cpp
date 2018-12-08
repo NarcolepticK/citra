@@ -4,9 +4,9 @@
 
 #include <memory>
 #include "common/logging/log.h"
-#include "core/settings.h"
 #include "core/hle/service/gsp/gsp_gpu.h"
 #include "core/hw/pica.h"
+#include "core/settings.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
 #include "video_core/video_core.h"
@@ -67,10 +67,6 @@ u16 VideoCore::GetResolutionScaleFactor() {
         return 1;
     }
 }
-
-void VideoCore::SetServiceToInterrupt(std::weak_ptr<Service::GSP::GSP_GPU> gsp) {
-    gsp_gpu = std::move(gsp);
-};
 
 RendererBase& VideoCore::Renderer() {
     return *renderer;

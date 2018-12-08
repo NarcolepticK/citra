@@ -35,7 +35,7 @@ void DrawPixel(int x, int y, const Math::Vec4<u8>& color) {
     const u32 bytes_per_pixel =
         HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
     const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
-                     coarse_y * framebuffer.width * bytes_per_pixel;
+                           coarse_y * framebuffer.width * bytes_per_pixel;
     u8* dst_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + dst_offset;
 
     switch (framebuffer.color_format) {
@@ -77,8 +77,9 @@ const Math::Vec4<u8> GetPixel(int x, int y) {
     const u32 bytes_per_pixel =
         HW::GPU::Gpu::BytesPerPixel(HW::GPU::PixelFormat(framebuffer.color_format.Value()));
     const u32 src_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
-                     coarse_y * framebuffer.width * bytes_per_pixel;
-    const u8* src_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + src_offset;
+                           coarse_y * framebuffer.width * bytes_per_pixel;
+    const u8* src_pixel =
+        Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + src_offset;
 
     switch (framebuffer.color_format) {
     case FramebufferRegs::ColorFormat::RGBA8:
@@ -394,7 +395,7 @@ void DrawShadowMapPixel(int x, int y, u32 depth, u8 stencil) {
     const u32 coarse_y = y & ~7;
     const u32 bytes_per_pixel = 4;
     const u32 dst_offset = VideoCore::GetMortonOffset(x, y, bytes_per_pixel) +
-                     coarse_y * framebuffer.width * bytes_per_pixel;
+                           coarse_y * framebuffer.width * bytes_per_pixel;
     u8* dst_pixel = Core::System::GetInstance().Memory().GetPhysicalPointer(addr) + dst_offset;
 
     const auto ref = DecodeD24S8Shadow(dst_pixel);

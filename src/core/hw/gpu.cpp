@@ -152,7 +152,7 @@ void Gpu::MemoryFill(const MemoryFillConfig& config) {
     if (system.VideoCore().Renderer().Rasterizer()->AccelerateFill(config))
         return;
 
-    system.Memory().RasterizerInvalidateRegion(start_addr, end_addr - start_addr);
+    Memory::RasterizerInvalidateRegion(start_addr, end_addr - start_addr);
 
     if (config.fill_24bit) {
         // fill with 24-bit values
@@ -241,8 +241,8 @@ void Gpu::DisplayTransfer(const DisplayTransferConfig& config) {
         config.input_width * config.input_height * BytesPerPixel(config.input_format);
     const u32 output_size = output_width * output_height * BytesPerPixel(config.output_format);
 
-    system.Memory().RasterizerFlushRegion(src_addr, input_size);
-    system.Memory().RasterizerInvalidateRegion(dst_addr, output_size);
+    Memory::RasterizerFlushRegion(src_addr, input_size);
+    Memory::RasterizerInvalidateRegion(dst_addr, output_size);
 
     for (u32 y = 0; y < output_height; ++y) {
         for (u32 x = 0; x < output_width; ++x) {
@@ -402,7 +402,7 @@ void Gpu::TextureCopy(const DisplayTransferConfig& config) {
 
     const std::size_t contiguous_input_size =
         config.texture_copy.size / input_width * (input_width + input_gap);
-    system.Memory().RasterizerFlushRegion(src_addr, static_cast<u32>(contiguous_input_size));
+    Memory::RasterizerFlushRegion(src_addr, static_cast<u32>(contiguous_input_size));
 
     const std::size_t contiguous_output_size =
         config.texture_copy.size / output_width * (output_width + output_gap);
@@ -581,31 +581,31 @@ bool Gpu::IsValidAddress(VAddr addr) {
     if (addr < VADDR_GPU || addr >= VADDR_GPU + 0x10000)
         return false;
     return true;
-};
+}
 
 u8 Gpu::Read8(VAddr addr) {
     u8 var;
     Read<u8>(var, addr);
     return var;
-};
+}
 
 u16 Gpu::Read16(VAddr addr) {
     u16 var;
     Read<u16>(var, addr);
     return var;
-};
+}
 
 u32 Gpu::Read32(VAddr addr) {
     u32 var;
     Read<u32>(var, addr);
     return var;
-};
+}
 
 u64 Gpu::Read64(VAddr addr) {
     u64 var;
     Read<u64>(var, addr);
     return var;
-};
+}
 
 bool Gpu::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
     if (IsValidAddress(src_addr)) {
@@ -614,23 +614,23 @@ bool Gpu::ReadBlock(VAddr src_addr, void* dest_buffer, std::size_t size) {
         return true;
     }
     return false;
-};
+}
 
 void Gpu::Write8(VAddr addr, u8 data) {
     Write<u8>(addr, data);
-};
+}
 
 void Gpu::Write16(VAddr addr, u16 data) {
     Write<u16>(addr, data);
-};
+}
 
 void Gpu::Write32(VAddr addr, u32 data) {
     Write<u32>(addr, data);
-};
+}
 
 void Gpu::Write64(VAddr addr, u64 data) {
     Write<u64>(addr, data);
-};
+}
 
 bool Gpu::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) {
     if (IsValidAddress(dest_addr)) {
@@ -638,14 +638,14 @@ bool Gpu::WriteBlock(VAddr dest_addr, const void* src_buffer, std::size_t size) 
         std::memcpy(&regs + dest_addr, src_buffer, size);
     }
     return false;
-};
+}
 
 HW::GPU::Regs& Gpu::Regs() {
     return regs;
-};
+}
 
 const HW::GPU::Regs& Gpu::Regs() const {
     return regs;
-};
+}
 
 } // namespace HW::GPU

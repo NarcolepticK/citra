@@ -336,7 +336,8 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
                 if (!texture.enabled)
                     continue;
 
-                const u8* texture_data = system.Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
+                const u8* texture_data =
+                    system.Memory().GetPhysicalPointer(texture.config.GetPhysicalAddress());
                 debug_context->recorder->MemoryAccessed(
                     texture_data,
                     TexturingRegs::NibblesPerPixel(texture.format) * texture.config.width / 2 *
@@ -423,7 +424,7 @@ void CommandProcessor::WritePicaReg(u32 id, const u32 value, const u32 mask) {
 
         for (auto& range : memory_accesses.ranges) {
             debug_context->recorder->MemoryAccessed(system.Memory().GetPhysicalPointer(range.first),
-                                                      range.second, range.first);
+                                                    range.second, range.first);
         }
 
         rasterizer->DrawTriangles();

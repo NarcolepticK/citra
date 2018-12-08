@@ -4,8 +4,6 @@
 
 #include "common/common_types.h"
 #include "common/logging/log.h"
-#include "core/hw/aes/key.h"
-#include "core/hw/gpu.h"
 #include "core/hw/hw.h"
 
 namespace HW {
@@ -114,26 +112,26 @@ template void HardwareManager::Write<u8>(u32 addr, const u8 data);
 
 HW::GPU::Gpu& HardwareManager::Gpu() {
     return *gpu;
-};
+}
 
 const HW::GPU::Gpu& HardwareManager::Gpu() const {
     return *gpu;
-};
+}
 
 HW::LCD::Lcd& HardwareManager::Lcd() {
     return *lcd;
-};
+}
 
 const HW::LCD::Lcd& HardwareManager::Lcd() const {
     return *lcd;
-};
+}
 
 Pica::Pica& HardwareManager::Pica() {
     return *pica;
-};
+}
 
 const Pica::Pica& HardwareManager::Pica() const {
     return *pica;
-};
+}
 
 } // namespace HW

@@ -7,6 +7,7 @@
 #include <atomic>
 #include <memory>
 #include "core/core.h"
+#include "core/frontend/emu_window.h"
 #include "video_core/renderer_base.h"
 
 class EmuWindow;
@@ -30,7 +31,7 @@ struct VideoCoreSettings {
     // Screenshot
     std::atomic<bool> renderer_screenshot_requested;
     void* screenshot_bits;
-    std::function<void()> screenshot_compelete_callback;
+    std::function<void()> screenshot_complete_callback;
     Layout::FramebufferLayout screenshot_framebuffer_layout;
 };
 
