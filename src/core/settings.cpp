@@ -29,8 +29,9 @@ void Apply() {
         system.VideoCore().Settings().hw_shader_accurate_gs = values.shaders_accurate_gs;
         system.VideoCore().Settings().hw_shader_accurate_mul = values.shaders_accurate_mul;
 
-        if (&system.VideoCore().Renderer())
-            system.VideoCore().Renderer().UpdateCurrentFramebufferLayout();
+        auto renderer = &Core::System::GetInstance().VideoCore().Renderer();
+        if (renderer)
+            renderer->UpdateCurrentFramebufferLayout();
 
         system.VideoCore().Settings().renderer_bg_color_update_requested = true;
 

@@ -8,6 +8,7 @@
 #include "core/memory.h"
 #include "core/memory_setup.h"
 #include "tests/core/arm/arm_test_common.h"
+#include "video_core/video_core.h"
 
 namespace ArmTests {
 
@@ -24,6 +25,8 @@ TestEnvironment::TestEnvironment(bool mutable_memory_)
     Memory::MemorySystem& memory = *Core::System::GetInstance().memory;
     Core::System::GetInstance().kernel = std::make_unique<Kernel::KernelSystem>(memory, 0);
     kernel = Core::System::GetInstance().kernel.get();
+    Core::System::GetInstance().video_core =
+        std::make_unique<VideoCore::VideoCore>(Core::System::GetInstance());
 
     kernel->SetCurrentProcess(kernel->CreateProcess(kernel->CreateCodeSet("", 0)));
     page_table = &kernel->GetCurrentProcess()->vm_manager.page_table;

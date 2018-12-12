@@ -299,9 +299,7 @@ private:
     /// Hardware manager
     std::unique_ptr<HW::HardwareManager> hardware_manager;
 
-    /// VideoCore
-    std::unique_ptr<VideoCore::VideoCore> video_core;
-
+    /// Debugger Manager
     std::shared_ptr<Debugger::DebuggerManager> debugger_manager;
 
 #ifdef ENABLE_SCRIPTING
@@ -318,6 +316,9 @@ public: // HACK: this is temporary exposed for tests,
 
     /// Memory system
     std::unique_ptr<Memory::MemorySystem> memory;
+
+    /// VideoCore
+    std::unique_ptr<VideoCore::VideoCore> video_core;
 
 private:
     static System s_instance;
